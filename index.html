@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>エルボ計算 統合ダーク版</title>
+
+<style>
+:root {
+    --ios-bg: #000000;
+    --ios-card: #1c1c1e;
+    --ios-input: #2c2c2e;
+    --ios-input-border: #3a3a3c;
+    --ios-secondary-text: #aeaeb2;
+    --ios-placeholder: #636366;
+    /* ボタン色を少し濃く調整 */
+    --ios-orange: #e68a00;
+    --ios-orange-dark: #995c00;
+    --ios-orange-light: #ffaa33;
+    
+    --accent-90: #5e5ce6;
+    --accent-45: #30d158;
+    
+    --current-accent: var(--accent-90);
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--ios-bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 10px 6px;
+    color: #ffffff;
+    touch-action: pan-y;
+}
+
+.card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--ios-card);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    user-select: none;
+}
+
+input, select {
+    user-select: auto;
+}
+
+.tab-container {
+    display: flex;
+    background: linear-gradient(180deg, #161618 0%, #2c2c2e 100%);
+    padding: 3px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #38383a;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    background: transparent;
+    color: #8e8e93;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-btn.active {
+    background: linear-gradient(180deg, #636366 0%, #48484a 100%);
+    color: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.header { text-align: center; margin-bottom: 20px; }
+.title { font-size: 24px; font-weight: 700; margin: 0; }
+.subtitle { font-size: 14px; color: #8e8e93; letter-spacing: 0.15em; font-weight: 600; margin-top: 4px; }
+
+.result-display-box {
+    border: none;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    height: 104px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 16px;
+    border-radius: 20px;
+}
+
+.mode-90 .result-display-box { background: var(--accent-90); box-shadow: 0 10px 20px rgba(94, 92, 230, 0.4); }
+.mode-45 .result-display-box { background: var(--accent-45); box-shadow: 0 10px 20px rgba(48, 209, 88, 0.4); }
+
+.label-inside { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+.result-value-text { font-size: 40px; font-weight: 900; display: flex; align-items: baseline; gap: 4px; }
+.result-unit-text { font-size: 18px; font-weight: 700; opacity: 0.9; }
+
+.input-group { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+.size-row { display: flex; gap: 12px; }
+.input-container { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.label-outside { font-size: 15px; font-weight: 700; color: #5e5ce6; margin-left: 8px; transition: color 0.3s ease; }
+
+.input-box {
+    width: 100%;
+    height: 60px;
+    background: var(--ios-input);
+    border-radius: 18px;
+    border: 1.5px solid #444446;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.input-box.large { height: 76px; border-radius: 22px; background: #121214; }
+.static-box { background: #121214; border: 1.5px solid #48484a; }
+
+.mode-90 #input-box-large { border: 3px solid var(--accent-90); }
+.mode-45 #input-box-large { border: 3px solid var(--accent-45); }
+
+.select, .input {
+    width: 100%; background: transparent; border: none; color: #ffffff; text-align: center; outline: none;
+}
+.select { font-size: 24px; font-weight: 800; -webkit-appearance: none; cursor: pointer; }
+.input { font-size: 34px; font-weight: 900; }
+
+.static-value { width: 100%; color: #aeaeb2; display: flex; justify-content: center; align-items: baseline; gap: 2px; font-size: 24px; font-weight: 800; }
+.static-unit { font-size: 15px; font-weight: 600; }
+
+/* 立体的な保存ボタン（色味を濃く調整） */
+.save-btn {
+    width: 100%; 
+    height: 62px; 
+    color: #ffffff; 
+    border: none; 
+    border-radius: 18px; 
+    font-size: 19px; 
+    font-weight: 900;
+    margin-bottom: 28px; 
+    position: relative;
+    top: 0;
+    transition: all 0.1s ease;
+    background: linear-gradient(180deg, var(--ios-orange-light) 0%, var(--ios-orange) 100%);
+    box-shadow: 0 6px 0 var(--ios-orange-dark), 0 10px 20px rgba(0,0,0,0.5);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+
+.save-btn:active {
+    top: 4px; 
+    box-shadow: 0 2px 0 var(--ios-orange-dark), 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.save-btn:disabled {
+    background: #2c2c2e !important;
+    color: #48484a;
+    box-shadow: none !important;
+    top: 0 !important;
+    cursor: default;
+    text-shadow: none;
+}
+
+.save-btn.success {
+    background: linear-gradient(180deg, #34c759 0%, #248a3d 100%);
+    box-shadow: 0 6px 0 #1a632c, 0 10px 20px rgba(0,0,0,0.5);
+}
+.save-btn.success:active {
+    box-shadow: 0 2px 0 #1a632c, 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.history-section { border-top: 1px solid #38383a; padding-top: 16px; }
+.history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.history-title { font-size: 14px; font-weight: 700; color: #8e8e93; }
+.history-clear-all { font-size: 14px; color: #ff453a; cursor: pointer; background: none; border: none; font-weight: 700; }
+
+.history-list { display: flex; flex-direction: column; gap: 4px; }
+
+.history-item {
+    background: var(--ios-input); 
+    border-radius: 14px; 
+    padding: 4px 12px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    border: 1px solid #3a3c3e;
+}
+.history-info { font-size: 15px; color: #d1d1d6; display: flex; align-items: center; gap: 6px; }
+.history-size-tag { 
+    background: rgba(255, 159, 10, 0.1); 
+    padding: 1px 6px; 
+    border-radius: 6px; 
+    font-weight: 700; 
+    border: 1px solid var(--ios-orange); 
+}
+
+.btn-save-mark { color: var(--ios-orange); font-size: 18px; font-weight: bold; margin-right: 4px; }
+
+.history-result { font-size: 19px; font-weight: 900; }
+
+.history-delete { 
+    color: #ff453a; 
+    cursor: pointer; 
+    font-size: 28px; 
+    font-weight: bold; 
+    margin-left: 12px; 
+    padding: 0px 8px; 
+    line-height: 1;
+}
+
+.modal-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+    display: none; justify-content: center; align-items: center;
+    z-index: 100; border-radius: 24px;
+}
+.modal-content {
+    background: #2c2c2e; width: 85%; padding: 24px; border-radius: 20px; text-align: center;
+    border: 1px solid #444446; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.modal-text { font-size: 14px; color: #aeaeb2; margin-bottom: 24px; line-height: 1.5; }
+.modal-btns { display: flex; gap: 12px; }
+.modal-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; font-size: 16px; cursor: pointer; }
+.modal-btn-cancel { background: #48484a; color: white; }
+.modal-btn-confirm { background: #ff453a; color: white; }
+
+.footer { text-align: center; margin-top: 24px; font-size: 12px; color: #8e8e93; letter-spacing: 0.05em; font-weight: 600; }
+</style>
+</head>
+
+<body class="mode-90">
+
+<div class="card" id="main-card">
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">履歴の削除</div>
+            <div class="modal-text" id="modal-msg">履歴を全て削除してもよろしいですか？</div>
+            <div class="modal-btns">
+                <button class="modal-btn modal-btn-cancel" id="modal-cancel">キャンセル</button>
+                <button class="modal-btn modal-btn-confirm" id="modal-confirm">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-container">
+        <button class="tab-btn active" data-mode="90">90°エルボ</button>
+        <button class="tab-btn" data-mode="45">45°エルボ</button>
+    </div>
+
+    <div class="header">
+        <div class="title" id="page-title">90°エルボ 計算</div>
+        <div class="subtitle">KYOWA ROOF</div>
+
+        <div class="result-display-box">
+            <div class="label-inside" id="result-label" style="color: #bfbdf3;">切寸法</div>
+            <div class="result-value-text">
+                <span id="result">---</span>
+                <span class="result-unit-text">mm</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <div class="size-row">
+            <div class="input-container">
+                <div class="label-outside" id="label-size">サイズ</div>
+                <div class="input-box static-box">
+                    <select id="size" class="select">
+                        <option value="75">75</option>
+                        <option value="100" selected>100</option>
+                        <option value="125">125</option>
+                    </select>
+                </div>
+            </div>
+            <div class="input-container">
+                <div class="label-outside" id="label-d">重寸法</div>
+                <div class="input-box static-box">
+                    <div class="static-value">
+                        <span id="d">--</span><span class="static-unit">mm</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="label-outside" id="main-input-label">寸法 (mm)</div>
+            <div class="input-box large" id="input-box-large">
+                <input id="input" class="input" type="text" inputmode="decimal" placeholder="0">
+            </div>
+        </div>
+    </div>
+
+    <button id="save-btn" class="save-btn" disabled>★履歴に保存</button>
+
+    <div class="history-section">
+        <div class="history-header">
+            <span class="history-title">保存された履歴</span>
+            <button id="history-clear-all" class="history-clear-all">履歴をクリア</button>
+        </div>
+        <div id="history-list" class="history-list"></div>
+    </div>
+
+    <div class="footer" id="footer-text">★：ボタン保存（無制限） / 自動保存（5件）</div>
+</div>
+
+<script>
+const data = {
+    "90": { 75: { d: 30, e: 88 }, 100: { d: 40, e: 112 }, 125: { d: 50, e: 140 } },
+    "45": { 75: { d: 30, e: 65 }, 100: { d: 40, e: 80 }, 125: { d: 50, e: 103 } }
+};
+
+const storageKey = 'kyowa_elbow_dark_combined_v1';
+let currentMode = "90";
+let histories = JSON.parse(localStorage.getItem(storageKey)) || [];
+let currentCalculatedResult = null;
+let lastSavedTimestamp = 0;
+
+// 各タブの状態（入力値と選択サイズ）を独立して保持
+const tabStates = {
+    "90": { input: "", size: "100" },
+    "45": { input: "", size: "100" }
+};
+
+let touchStartX = 0;
+let touchEndX = 0;
+const swipeThreshold = 50;
+
+const elements = {
+    body: document.body,
+    card: document.getElementById("main-card"),
+    tabBtns: document.querySelectorAll(".tab-btn"),
+    pageTitle: document.getElementById("page-title"),
+    resultLabel: document.getElementById("result-label"),
+    mainInputLabel: document.getElementById("main-input-label"),
+    labelSize: document.getElementById("label-size"),
+    labelD: document.getElementById("label-d"),
+    sizeEl: document.getElementById("size"),
+    inputEl: document.getElementById("input"),
+    saveBtn: document.getElementById("save-btn"),
+    dEl: document.getElementById("d"),
+    resultEl: document.getElementById("result"),
+    historyListEl: document.getElementById("history-list"),
+    clearAllBtn: document.getElementById("history-clear-all"),
+    footerText: document.getElementById("footer-text"),
+    modal: document.getElementById("modal-overlay"),
+    modalMsg: document.getElementById("modal-msg"),
+    modalCancel: document.getElementById("modal-cancel"),
+    modalConfirm: document.getElementById("modal-confirm")
+};
+
+function formatNumber(num) {
+    if (num === null || isNaN(num)) return "---";
+    const parts = num.toString().split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join(".");
+}
+
+function unformatNumber(str) { return str.replace(/,/g, ""); }
+
+function switchMode(mode) {
+    if (mode === currentMode) return;
+    
+    // 現在のタブの状態を保存
+    tabStates[currentMode].input = elements.inputEl.value;
+    tabStates[currentMode].size = elements.sizeEl.value;
+
+    currentMode = mode;
+    elements.tabBtns.forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+    elements.body.className = `mode-${mode}`;
+    elements.pageTitle.textContent = `${mode}°エルボ 計算`;
+    
+    elements.footerText.textContent = "★：ボタン保存（無制限） / 自動保存（5件）";
+    
+    const primaryLabelColor = mode === "90" ? "#5e5ce6" : "#30d158";
+    elements.resultLabel.style.color = mode === "90" ? "#bfbdf3" : "#ffffff";
+    elements.mainInputLabel.style.color = primaryLabelColor;
+    elements.labelSize.style.color = primaryLabelColor;
+    elements.labelD.style.color = primaryLabelColor;
+    
+    // 切り替え先のタブの状態を復元
+    elements.inputEl.value = tabStates[currentMode].input;
+    elements.sizeEl.value = tabStates[currentMode].size;
+    
+    calc();
+    renderHistory();
+}
+
+function calc() {
+    const size = elements.sizeEl.value;
+    let valStr = elements.inputEl.value;
+    let rawInput = unformatNumber(valStr).replace(/[^\d.]/g, "");
+    
+    if (rawInput !== "") {
+        const parts = rawInput.split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        const formatted = parts.join(".");
+        if (valStr !== formatted) elements.inputEl.value = formatted;
+    }
+
+    const { d, e } = data[currentMode][size];
+    elements.dEl.textContent = d;
+
+    const c = parseFloat(rawInput);
+    if (isNaN(c)) {
+        elements.resultEl.textContent = "---";
+        elements.saveBtn.disabled = true;
+        currentCalculatedResult = null;
+        return;
+    }
+
+    let f, resultFormatted;
+    if (currentMode === "90") {
+        f = c - ((e * 2) - (d * 2));
+        resultFormatted = formatNumber(Math.round(f * 10) / 10);
+    } else {
+        const cos45 = Math.cos(45 * Math.PI / 180);
+        f = (c / cos45) - ((e - d) * 2);
+        resultFormatted = formatNumber(Math.ceil(f));
+    }
+    
+    elements.resultEl.textContent = resultFormatted;
+    elements.saveBtn.disabled = false;
+    currentCalculatedResult = { mode: currentMode, size, input: elements.inputEl.value, result: resultFormatted };
+}
+
+function renderHistory() {
+    elements.historyListEl.innerHTML = "";
+    const filtered = histories.filter(item => item.mode === currentMode);
+
+    if (filtered.length === 0) {
+        elements.historyListEl.innerHTML = '<div style="text-align:center; padding:15px; color:#48484a; font-size:12px;">履歴はありません</div>';
+        return;
+    }
+
+    [...filtered].reverse().forEach((item) => {
+        const div = document.createElement("div");
+        div.className = "history-item";
+        const markHtml = item.method === 'button' ? '<span class="btn-save-mark">★</span>' : '';
+        div.innerHTML = `
+            <div class="history-info">
+                ${markHtml}
+                <span class="history-size-tag">${item.size}</span>
+                <span>寸法: ${item.input}</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <span class="history-result">${item.result}</span>
+                <span class="history-delete" data-ts="${item.timestamp}">×</span>
+            </div>
+        `;
+        elements.historyListEl.appendChild(div);
+    });
+
+    elements.historyListEl.querySelectorAll(".history-delete").forEach(btn => {
+        btn.onclick = (e) => {
+            const ts = parseInt(btn.getAttribute("data-ts"));
+            histories = histories.filter(h => h.timestamp !== ts);
+            localStorage.setItem(storageKey, JSON.stringify(histories));
+            renderHistory();
+        };
+    });
+}
+
+function saveToHistory(method = 'enter') {
+    const now = Date.now();
+    if (now - lastSavedTimestamp < 300) return;
+
+    if (currentCalculatedResult) {
+        if (method === 'enter') {
+            const currentAutoHistories = histories.filter(h => h.mode === currentMode && h.method === 'enter');
+            if (currentAutoHistories.length >= 5) {
+                const oldestAutoIdx = histories.findIndex(h => h.mode === currentMode && h.method === 'enter');
+                if (oldestAutoIdx !== -1) {
+                    histories.splice(oldestAutoIdx, 1);
+                }
+            }
+        }
+
+        histories.push({ 
+            ...currentCalculatedResult, 
+            timestamp: now,
+            method: method 
+        });
+
+        if (histories.length > 1000) histories.shift();
+
+        localStorage.setItem(storageKey, JSON.stringify(histories));
+        renderHistory();
+        lastSavedTimestamp = now;
+        
+        elements.saveBtn.classList.add("success");
+        setTimeout(() => {
+            elements.saveBtn.classList.remove("success");
+        }, 800);
+    }
+}
+
+function handleGesture() {
+    const diff = touchEndX - touchStartX;
+    if (Math.abs(diff) > swipeThreshold) {
+        const nextMode = currentMode === "90" ? "45" : "90";
+        switchMode(nextMode);
+    }
+}
+
+elements.card.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+elements.card.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleGesture();
+}, { passive: true });
+
+elements.saveBtn.addEventListener("click", () => saveToHistory('button'));
+
+elements.inputEl.addEventListener("focus", function() {
+    setTimeout(() => {
+        this.setSelectionRange(0, 9999);
+    }, 50);
+});
+
+elements.inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        if (!elements.saveBtn.disabled) {
+            saveToHistory('enter');
+            elements.inputEl.blur();
+        }
+    }
+});
+
+elements.inputEl.addEventListener("blur", () => {
+    if (!elements.saveBtn.disabled && elements.inputEl.value !== "" && elements.inputEl.value !== "0") {
+        saveToHistory('enter');
+    }
+});
+
+elements.sizeEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        elements.inputEl.focus();
+    }
+});
+
+elements.sizeEl.addEventListener("change", () => {
+    calc();
+    setTimeout(() => {
+        elements.inputEl.focus();
+    }, 100);
+});
+
+document.addEventListener("touchstart", (e) => {
+    if (e.target.tagName !== "INPUT" && e.target.tagName !== "SELECT" && e.target.tagName !== "BUTTON") {
+        if (document.activeElement) document.activeElement.blur();
+    }
+}, { passive: true });
+
+elements.clearAllBtn.addEventListener("click", () => {
+    elements.modalMsg.textContent = `現在の${currentMode}°エルボの履歴を全てクリアしますか？`;
+    elements.modal.style.display = "flex";
+});
+
+elements.modalCancel.addEventListener("click", () => {
+    elements.modal.style.display = "none";
+});
+
+elements.modalConfirm.addEventListener("click", () => {
+    histories = histories.filter(item => item.mode !== currentMode);
+    localStorage.setItem(storageKey, JSON.stringify(histories));
+    renderHistory();
+    elements.modal.style.display = "none";
+});
+
+elements.tabBtns.forEach(btn => btn.onclick = () => switchMode(btn.dataset.mode));
+elements.inputEl.oninput = calc;
+
+window.onload = () => {
+    calc();
+    renderHistory();
+};
+</script>
+
+</body>
+</html>
