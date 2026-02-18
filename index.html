@@ -1,597 +1,669 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>エルボ計算 統合ダーク版</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>エルホ距離計算</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --ios-bg: #000000;
+            --ios-card: #1c1c1e;
+            --ios-input: #2c2c2e;
+            --ios-orange: #e68a00;
+            --ios-orange-dark: #995c00;
+            --ios-orange-light: #ffaa33;
+            --accent-90: #5e5ce6;
+            --accent-45: #30d158;
+            --accent-dist: #3b82f6;
+        }
 
-<style>
-:root {
-    --ios-bg: #000000;
-    --ios-card: #1c1c1e;
-    --ios-input: #2c2c2e;
-    --ios-input-border: #3a3a3c;
-    --ios-secondary-text: #aeaeb2;
-    --ios-placeholder: #636366;
-    /* ボタン色を少し濃く調整 */
-    --ios-orange: #e68a00;
-    --ios-orange-dark: #995c00;
-    --ios-orange-light: #ffaa33;
-    
-    --accent-90: #5e5ce6;
-    --accent-45: #30d158;
-    
-    --current-accent: var(--accent-90);
-}
+        * {
+            box-sizing: border-box;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-* {
-    box-sizing: border-box;
-    -webkit-text-size-adjust: 100%;
-}
+        body {
+            margin: 0;
+            background: var(--ios-bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            padding: 10px 6px;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
 
-body {
-    margin: 0;
-    background: var(--ios-bg);
-    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-    display: flex;
-    justify-content: center;
-    padding: 10px 6px;
-    color: #ffffff;
-    touch-action: pan-y;
-}
+        /* 共通カード */
+        .main-container {
+            width: 100%;
+            max-width: 450px;
+            background: var(--ios-card);
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            position: relative;
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            transition: border 0.3s ease;
+        }
 
-.card {
-    width: 100%;
-    max-width: 420px;
-    background: var(--ios-card);
-    border-radius: 24px;
-    padding: 20px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    user-select: none;
-}
+        /* メインタブナビゲーション */
+        .main-nav {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 24px;
+            background: #2c2c2e;
+            padding: 4px;
+            border-radius: 14px;
+            z-index: 10;
+        }
 
-input, select {
-    user-select: auto;
-}
+        .nav-btn {
+            flex: 1;
+            padding: 12px 4px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #8e8e93;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
 
-.tab-container {
-    display: flex;
-    background: linear-gradient(180deg, #161618 0%, #2c2c2e 100%);
-    padding: 3px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    border: 1px solid #38383a;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
-}
+        .nav-btn.active {
+            background: #48484a;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
 
-.tab-btn {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 9px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    background: transparent;
-    color: #8e8e93;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
+        /* 入力ボックス共通 */
+        .ios-input-box {
+            background: var(--ios-input);
+            border: 1.5px solid #3a3a3c;
+            border-radius: 16px;
+            width: 100%;
+            height: 54px;
+            color: white;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
 
-.tab-btn.active {
-    background: linear-gradient(180deg, #636366 0%, #48484a 100%);
-    color: white;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
-}
+        /* モードごとの入力枠色 (エルボ 90°) */
+        .mode-90 .input-themed { border: 2px solid var(--accent-90); box-shadow: 0 0 8px rgba(94, 92, 230, 0.2); }
+        /* モードごとの入力枠色 (エルボ 45°) */
+        .mode-45 .input-themed { border: 2px solid var(--accent-45); box-shadow: 0 0 8px rgba(48, 209, 88, 0.2); }
+        /* モードごとの入力枠色 (距離計算) */
+        .mode-dist .input-themed { border: 2px solid var(--accent-dist); box-shadow: 0 0 8px rgba(59, 130, 246, 0.2); }
 
-.header { text-align: center; margin-bottom: 20px; }
-.title { font-size: 24px; font-weight: 700; margin: 0; }
-.subtitle { font-size: 14px; color: #8e8e93; letter-spacing: 0.15em; font-weight: 600; margin-top: 4px; }
+        .label-text {
+            font-size: 13px;
+            color: #8e8e93;
+            margin-left: 8px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
 
-.result-display-box {
-    border: none;
-    transition: background 0.3s ease, box-shadow 0.3s ease;
-    height: 104px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    margin-top: 16px;
-    border-radius: 20px;
-}
+        /* 結果表示 */
+        .result-box {
+            height: 100px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
 
-.mode-90 .result-display-box { background: var(--accent-90); box-shadow: 0 10px 20px rgba(94, 92, 230, 0.4); }
-.mode-45 .result-display-box { background: var(--accent-45); box-shadow: 0 10px 20px rgba(48, 209, 88, 0.4); }
+        .mode-90 .result-box-elbow { background: var(--accent-90); box-shadow: 0 8px 16px rgba(94, 92, 230, 0.3); }
+        .mode-45 .result-box-elbow { background: var(--accent-45); box-shadow: 0 8px 16px rgba(48, 209, 88, 0.3); }
+        .mode-dist .result-box-dist { background: var(--accent-dist); box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3); }
 
-.label-inside { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
-.result-value-text { font-size: 40px; font-weight: 900; display: flex; align-items: baseline; gap: 4px; }
-.result-unit-text { font-size: 18px; font-weight: 700; opacity: 0.9; }
+        /* ボタン */
+        .btn-3d {
+            width: 100%;
+            height: 56px;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 17px;
+            cursor: pointer;
+            border: none;
+            position: relative;
+            top: 0;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
 
-.input-group { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
-.size-row { display: flex; gap: 12px; }
-.input-container { display: flex; flex-direction: column; gap: 6px; flex: 1; }
-.label-outside { font-size: 15px; font-weight: 700; color: #5e5ce6; margin-left: 8px; transition: color 0.3s ease; }
+        .btn-orange {
+            background: linear-gradient(180deg, var(--ios-orange-light) 0%, var(--ios-orange) 100%);
+            color: white;
+            box-shadow: 0 5px 0 var(--ios-orange-dark);
+        }
+        .btn-orange:active {
+            top: 3px;
+            box-shadow: 0 2px 0 var(--ios-orange-dark);
+        }
+        .btn-orange:disabled {
+            background: #2c2c2e;
+            color: #48484a;
+            box-shadow: none;
+            top: 0;
+        }
 
-.input-box {
-    width: 100%;
-    height: 60px;
-    background: var(--ios-input);
-    border-radius: 18px;
-    border: 1.5px solid #444446;
-    display: flex;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-}
+        /* 立体的なクリアボタン用スタイル */
+        .btn-gray {
+            background: linear-gradient(180deg, #636366 0%, #3a3a3c 100%);
+            color: white;
+            box-shadow: 0 5px 0 #1c1c1e;
+        }
+        .btn-gray:active {
+            top: 3px;
+            box-shadow: 0 2px 0 #1c1c1e;
+        }
 
-.input-box.large { height: 76px; border-radius: 22px; background: #121214; }
-.static-box { background: #121214; border: 1.5px solid #48484a; }
+        /* 履歴リスト */
+        .history-item {
+            background: #1c1c1e;
+            border: 1px solid #3a3a3c;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-.mode-90 #input-box-large { border: 3px solid var(--accent-90); }
-.mode-45 #input-box-large { border: 3px solid var(--accent-45); }
+        /* トースト */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(48, 209, 88, 0.9);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            pointer-events: none;
+        }
 
-.select, .input {
-    width: 100%; background: transparent; border: none; color: #ffffff; text-align: center; outline: none;
-}
-.select { font-size: 24px; font-weight: 800; -webkit-appearance: none; cursor: pointer; }
-.input { font-size: 34px; font-weight: 900; }
+        #toast.show { opacity: 1; }
 
-.static-value { width: 100%; color: #aeaeb2; display: flex; justify-content: center; align-items: baseline; gap: 2px; font-size: 24px; font-weight: 800; }
-.static-unit { font-size: 15px; font-weight: 600; }
-
-/* 立体的な保存ボタン（色味を濃く調整） */
-.save-btn {
-    width: 100%; 
-    height: 62px; 
-    color: #ffffff; 
-    border: none; 
-    border-radius: 18px; 
-    font-size: 19px; 
-    font-weight: 900;
-    margin-bottom: 28px; 
-    position: relative;
-    top: 0;
-    transition: all 0.1s ease;
-    background: linear-gradient(180deg, var(--ios-orange-light) 0%, var(--ios-orange) 100%);
-    box-shadow: 0 6px 0 var(--ios-orange-dark), 0 10px 20px rgba(0,0,0,0.5);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    cursor: pointer;
-}
-
-.save-btn:active {
-    top: 4px; 
-    box-shadow: 0 2px 0 var(--ios-orange-dark), 0 4px 10px rgba(0,0,0,0.4);
-}
-
-.save-btn:disabled {
-    background: #2c2c2e !important;
-    color: #48484a;
-    box-shadow: none !important;
-    top: 0 !important;
-    cursor: default;
-    text-shadow: none;
-}
-
-.save-btn.success {
-    background: linear-gradient(180deg, #34c759 0%, #248a3d 100%);
-    box-shadow: 0 6px 0 #1a632c, 0 10px 20px rgba(0,0,0,0.5);
-}
-.save-btn.success:active {
-    box-shadow: 0 2px 0 #1a632c, 0 4px 10px rgba(0,0,0,0.4);
-}
-
-.history-section { border-top: 1px solid #38383a; padding-top: 16px; }
-.history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.history-title { font-size: 14px; font-weight: 700; color: #8e8e93; }
-.history-clear-all { font-size: 14px; color: #ff453a; cursor: pointer; background: none; border: none; font-weight: 700; }
-
-.history-list { display: flex; flex-direction: column; gap: 4px; }
-
-.history-item {
-    background: var(--ios-input); 
-    border-radius: 14px; 
-    padding: 4px 12px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    border: 1px solid #3a3c3e;
-}
-.history-info { font-size: 15px; color: #d1d1d6; display: flex; align-items: center; gap: 6px; }
-.history-size-tag { 
-    background: rgba(255, 159, 10, 0.1); 
-    padding: 1px 6px; 
-    border-radius: 6px; 
-    font-weight: 700; 
-    border: 1px solid var(--ios-orange); 
-}
-
-.btn-save-mark { color: var(--ios-orange); font-size: 18px; font-weight: bold; margin-right: 4px; }
-
-.history-result { font-size: 19px; font-weight: 900; }
-
-.history-delete { 
-    color: #ff453a; 
-    cursor: pointer; 
-    font-size: 28px; 
-    font-weight: bold; 
-    margin-left: 12px; 
-    padding: 0px 8px; 
-    line-height: 1;
-}
-
-.modal-overlay {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
-    display: none; justify-content: center; align-items: center;
-    z-index: 100; border-radius: 24px;
-}
-.modal-content {
-    background: #2c2c2e; width: 85%; padding: 24px; border-radius: 20px; text-align: center;
-    border: 1px solid #444446; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
-.modal-text { font-size: 14px; color: #aeaeb2; margin-bottom: 24px; line-height: 1.5; }
-.modal-btns { display: flex; gap: 12px; }
-.modal-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; font-size: 16px; cursor: pointer; }
-.modal-btn-cancel { background: #48484a; color: white; }
-.modal-btn-confirm { background: #ff453a; color: white; }
-
-.footer { text-align: center; margin-top: 24px; font-size: 12px; color: #8e8e93; letter-spacing: 0.05em; font-weight: 600; }
-</style>
+        .hidden { display: none !important; }
+    </style>
 </head>
+<body>
 
-<body class="mode-90">
+<div class="main-container mode-90" id="app-container">
+    <div id="toast">コピーしました</div>
 
-<div class="card" id="main-card">
-    <div id="modal-overlay" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-title">履歴の削除</div>
-            <div class="modal-text" id="modal-msg">履歴を全て削除してもよろしいですか？</div>
-            <div class="modal-btns">
-                <button class="modal-btn modal-btn-cancel" id="modal-cancel">キャンセル</button>
-                <button class="modal-btn modal-btn-confirm" id="modal-confirm">削除する</button>
+    <!-- メインタブ -->
+    <div class="main-nav">
+        <div class="nav-btn active" id="nav-90" onclick="switchTab('90')">90°エルボ</div>
+        <div class="nav-btn" id="nav-45" onclick="switchTab('45')">45°エルボ</div>
+        <div class="nav-btn" id="nav-dist" onclick="switchTab('dist')">距離計算</div>
+    </div>
+
+    <!-- エルボ計算セクション -->
+    <div id="section-elbow" class="flex flex-col flex-1">
+        <div class="text-center mb-6">
+            <h1 class="text-xl font-bold" id="elbow-title">90°エルボ 計算</h1>
+            <p class="text-xs text-gray-500 tracking-widest mt-1">KYOWA ROOF</p>
+        </div>
+
+        <div class="result-box result-box-elbow mb-6">
+            <span class="text-xs font-bold opacity-80 mb-1">切寸法</span>
+            <div class="flex items-baseline gap-1">
+                <span class="text-4xl font-black" id="elbow-result-val">---</span>
+                <span class="text-lg font-bold opacity-80">mm</span>
             </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <div class="label-text">サイズ</div>
+                <select id="elbow-size" class="ios-input-box input-themed" onchange="elbowCalc()">
+                    <option value="75">75</option>
+                    <option value="100" selected>100</option>
+                    <option value="125">125</option>
+                </select>
+            </div>
+            <div>
+                <div class="label-text">重寸法</div>
+                <div class="ios-input-box flex items-center justify-center bg-zinc-900 border-zinc-800 text-zinc-400">
+                    <span id="elbow-d-val">--</span><span class="text-sm ml-1">mm</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <div class="label-text">寸法 (mm)</div>
+            <input type="text" id="elbow-input" class="ios-input-box h-16 text-3xl input-themed" inputmode="decimal" placeholder="0" oninput="elbowCalc()">
+        </div>
+
+        <button id="elbow-save-btn" class="btn-3d btn-orange mb-8" disabled onclick="saveElbowHistory('button')">
+            ★ 履歴に保存
+        </button>
+
+        <div class="border-t border-zinc-800 pt-4 flex-1">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-xs font-bold text-zinc-500">保存された履歴</span>
+                <button class="text-xs text-red-500 font-bold" onclick="clearElbowHistory()">クリア</button>
+            </div>
+            <div id="elbow-history-list" class="space-y-2"></div>
         </div>
     </div>
 
-    <div class="tab-container">
-        <button class="tab-btn active" data-mode="90">90°エルボ</button>
-        <button class="tab-btn" data-mode="45">45°エルボ</button>
-    </div>
+    <!-- 距離計算セクション -->
+    <div id="section-dist" class="hidden flex flex-col flex-1">
+        <div class="text-center mb-6">
+            <h1 class="text-xl font-bold">距離計算</h1>
+            <p class="text-xs text-gray-500 tracking-widest mt-1">KYOWA ROOF</p>
+        </div>
 
-    <div class="header">
-        <div class="title" id="page-title">90°エルボ 計算</div>
-        <div class="subtitle">KYOWA ROOF</div>
-
-        <div class="result-display-box">
-            <div class="label-inside" id="result-label" style="color: #bfbdf3;">切寸法</div>
-            <div class="result-value-text">
-                <span id="result">---</span>
-                <span class="result-unit-text">mm</span>
+        <div class="result-box result-box-dist cursor-pointer" id="dist-result-container" onclick="copyDistResult()">
+            <span class="text-xs font-bold opacity-80 mb-1">計算結果 (タップでコピー)</span>
+            <div class="flex items-baseline gap-1">
+                <span class="text-4xl font-black" id="dist-result-val">---</span>
+                <span class="text-lg font-bold opacity-80">mm</span>
             </div>
         </div>
-    </div>
 
-    <div class="input-group">
-        <div class="size-row">
-            <div class="input-container">
-                <div class="label-outside" id="label-size">サイズ</div>
-                <div class="input-box static-box">
-                    <select id="size" class="select">
-                        <option value="75">75</option>
-                        <option value="100" selected>100</option>
-                        <option value="125">125</option>
+        <div class="space-y-5">
+            <div class="grid grid-cols-3 gap-3">
+                <div class="col-span-1">
+                    <div class="label-text">足長</div>
+                    <input type="text" id="dist-input-b" class="ios-input-box text-lg input-themed" inputmode="numeric" placeholder="0">
+                </div>
+                <div class="col-span-2">
+                    <div class="label-text">並行距離</div>
+                    <input type="text" id="dist-input-h" class="ios-input-box text-lg input-themed" inputmode="numeric" placeholder="0">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div class="col-span-1">
+                    <div class="label-text">選択</div>
+                    <select id="dist-select-x" class="ios-input-box text-lg input-themed">
+                        <option value="45">75</option>
+                        <option value="57" selected>100</option>
+                        <option value="70">125</option>
                     </select>
                 </div>
-            </div>
-            <div class="input-container">
-                <div class="label-outside" id="label-d">重寸法</div>
-                <div class="input-box static-box">
-                    <div class="static-value">
-                        <span id="d">--</span><span class="static-unit">mm</span>
-                    </div>
+                <div class="col-span-2">
+                    <div class="label-text">寸法</div>
+                    <input type="text" id="dist-input-a" class="ios-input-box text-lg input-themed" inputmode="numeric" placeholder="0">
                 </div>
             </div>
-        </div>
 
-        <div class="input-container">
-            <div class="label-outside" id="main-input-label">寸法 (mm)</div>
-            <div class="input-box large" id="input-box-large">
-                <input id="input" class="input" type="text" inputmode="decimal" placeholder="0">
+            <div class="flex justify-center pt-8">
+                <button onclick="clearDistFields()" class="btn-3d btn-gray w-1/2">
+                    クリア
+                </button>
             </div>
         </div>
     </div>
 
-    <button id="save-btn" class="save-btn" disabled>★履歴に保存</button>
-
-    <div class="history-section">
-        <div class="history-header">
-            <span class="history-title">保存された履歴</span>
-            <button id="history-clear-all" class="history-clear-all">履歴をクリア</button>
-        </div>
-        <div id="history-list" class="history-list"></div>
+    <div class="text-center text-[10px] text-zinc-600 mt-6 pb-2">
+        &copy; KYOWA ROOF TOOL
     </div>
-
-    <div class="footer" id="footer-text">★：ボタン保存（無制限） / 自動保存（5件）</div>
 </div>
 
 <script>
-const data = {
-    "90": { 75: { d: 30, e: 88 }, 100: { d: 40, e: 112 }, 125: { d: 50, e: 140 } },
-    "45": { 75: { d: 30, e: 65 }, 100: { d: 40, e: 80 }, 125: { d: 50, e: 103 } }
-};
-
-const storageKey = 'kyowa_elbow_dark_combined_v1';
-let currentMode = "90";
-let histories = JSON.parse(localStorage.getItem(storageKey)) || [];
-let currentCalculatedResult = null;
-let lastSavedTimestamp = 0;
-
-// 各タブの状態（入力値と選択サイズ）を独立して保持
-const tabStates = {
-    "90": { input: "", size: "100" },
-    "45": { input: "", size: "100" }
-};
-
-let touchStartX = 0;
-let touchEndX = 0;
-const swipeThreshold = 50;
-
-const elements = {
-    body: document.body,
-    card: document.getElementById("main-card"),
-    tabBtns: document.querySelectorAll(".tab-btn"),
-    pageTitle: document.getElementById("page-title"),
-    resultLabel: document.getElementById("result-label"),
-    mainInputLabel: document.getElementById("main-input-label"),
-    labelSize: document.getElementById("label-size"),
-    labelD: document.getElementById("label-d"),
-    sizeEl: document.getElementById("size"),
-    inputEl: document.getElementById("input"),
-    saveBtn: document.getElementById("save-btn"),
-    dEl: document.getElementById("d"),
-    resultEl: document.getElementById("result"),
-    historyListEl: document.getElementById("history-list"),
-    clearAllBtn: document.getElementById("history-clear-all"),
-    footerText: document.getElementById("footer-text"),
-    modal: document.getElementById("modal-overlay"),
-    modalMsg: document.getElementById("modal-msg"),
-    modalCancel: document.getElementById("modal-cancel"),
-    modalConfirm: document.getElementById("modal-confirm")
-};
-
-function formatNumber(num) {
-    if (num === null || isNaN(num)) return "---";
-    const parts = num.toString().split(".");
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return parts.join(".");
-}
-
-function unformatNumber(str) { return str.replace(/,/g, ""); }
-
-function switchMode(mode) {
-    if (mode === currentMode) return;
+    // --- 状態管理（各タブの入力値を独立させる） ---
+    let currentTab = '90';
+    const storageKey = 'kyowa_unified_v2';
     
-    // 現在のタブの状態を保存
-    tabStates[currentMode].input = elements.inputEl.value;
-    tabStates[currentMode].size = elements.sizeEl.value;
+    // 各モードの入力状態を保持
+    const tabStates = {
+        '90': { input: '', size: '100' },
+        '45': { input: '', size: '100' },
+        'dist': { b: '', h: '', x: '57', a: '' }
+    };
 
-    currentMode = mode;
-    elements.tabBtns.forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
-    elements.body.className = `mode-${mode}`;
-    elements.pageTitle.textContent = `${mode}°エルボ 計算`;
-    
-    elements.footerText.textContent = "★：ボタン保存（無制限） / 自動保存（5件）";
-    
-    const primaryLabelColor = mode === "90" ? "#5e5ce6" : "#30d158";
-    elements.resultLabel.style.color = mode === "90" ? "#bfbdf3" : "#ffffff";
-    elements.mainInputLabel.style.color = primaryLabelColor;
-    elements.labelSize.style.color = primaryLabelColor;
-    elements.labelD.style.color = primaryLabelColor;
-    
-    // 切り替え先のタブの状態を復元
-    elements.inputEl.value = tabStates[currentMode].input;
-    elements.sizeEl.value = tabStates[currentMode].size;
-    
-    calc();
-    renderHistory();
-}
+    let histories = JSON.parse(localStorage.getItem(storageKey)) || [];
 
-function calc() {
-    const size = elements.sizeEl.value;
-    let valStr = elements.inputEl.value;
-    let rawInput = unformatNumber(valStr).replace(/[^\d.]/g, "");
-    
-    if (rawInput !== "") {
-        const parts = rawInput.split(".");
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        const formatted = parts.join(".");
-        if (valStr !== formatted) elements.inputEl.value = formatted;
+    const elbowData = {
+        "90": { 75: { d: 30, e: 88 }, 100: { d: 40, e: 112 }, 125: { d: 50, e: 140 } },
+        "45": { 75: { d: 30, e: 65 }, 100: { d: 40, e: 80 }, 125: { d: 50, e: 103 } }
+    };
+
+    // --- ユーティリティ ---
+    function formatNum(num) {
+        if (num === null || isNaN(num) || num === "") return "---";
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
-    const { d, e } = data[currentMode][size];
-    elements.dEl.textContent = d;
-
-    const c = parseFloat(rawInput);
-    if (isNaN(c)) {
-        elements.resultEl.textContent = "---";
-        elements.saveBtn.disabled = true;
-        currentCalculatedResult = null;
-        return;
+    function unformatNum(str) {
+        return str.toString().replace(/,/g, "");
     }
 
-    let f, resultFormatted;
-    if (currentMode === "90") {
-        f = c - ((e * 2) - (d * 2));
-        resultFormatted = formatNumber(Math.round(f * 10) / 10);
-    } else {
-        const cos45 = Math.cos(45 * Math.PI / 180);
-        f = (c / cos45) - ((e - d) * 2);
-        resultFormatted = formatNumber(Math.ceil(f));
-    }
-    
-    elements.resultEl.textContent = resultFormatted;
-    elements.saveBtn.disabled = false;
-    currentCalculatedResult = { mode: currentMode, size, input: elements.inputEl.value, result: resultFormatted };
-}
-
-function renderHistory() {
-    elements.historyListEl.innerHTML = "";
-    const filtered = histories.filter(item => item.mode === currentMode);
-
-    if (filtered.length === 0) {
-        elements.historyListEl.innerHTML = '<div style="text-align:center; padding:15px; color:#48484a; font-size:12px;">履歴はありません</div>';
-        return;
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    [...filtered].reverse().forEach((item) => {
-        const div = document.createElement("div");
-        div.className = "history-item";
-        const markHtml = item.method === 'button' ? '<span class="btn-save-mark">★</span>' : '';
-        div.innerHTML = `
-            <div class="history-info">
-                ${markHtml}
-                <span class="history-size-tag">${item.size}</span>
-                <span>寸法: ${item.input}</span>
-            </div>
-            <div style="display: flex; align-items: center;">
-                <span class="history-result">${item.result}</span>
-                <span class="history-delete" data-ts="${item.timestamp}">×</span>
-            </div>
-        `;
-        elements.historyListEl.appendChild(div);
-    });
+    // --- タブ切り替えロジック ---
+    function switchTab(tabId) {
+        if (tabId === currentTab) return;
 
-    elements.historyListEl.querySelectorAll(".history-delete").forEach(btn => {
-        btn.onclick = (e) => {
-            const ts = parseInt(btn.getAttribute("data-ts"));
-            histories = histories.filter(h => h.timestamp !== ts);
-            localStorage.setItem(storageKey, JSON.stringify(histories));
-            renderHistory();
+        // 現在の状態を保存
+        saveCurrentState();
+
+        currentTab = tabId;
+        
+        // UI更新
+        ['90', '45', 'dist'].forEach(id => {
+            document.getElementById(`nav-${id}`).classList.toggle('active', id === tabId);
+        });
+
+        const container = document.getElementById('app-container');
+        const sectionElbow = document.getElementById('section-elbow');
+        const sectionDist = document.getElementById('section-dist');
+
+        if (tabId === 'dist') {
+            sectionElbow.classList.add('hidden');
+            sectionDist.classList.remove('hidden');
+            container.className = 'main-container mode-dist';
+        } else {
+            sectionElbow.classList.remove('hidden');
+            sectionDist.classList.add('hidden');
+            container.className = `main-container mode-${tabId}`;
+            document.getElementById('elbow-title').innerText = `${tabId}°エルボ 計算`;
+        }
+
+        // 保存されていた状態を復元
+        restoreState(tabId);
+        
+        // 再計算と履歴表示
+        if (tabId !== 'dist') {
+            elbowCalc();
+            renderElbowHistory();
+        } else {
+            distCalc();
+        }
+    }
+
+    function saveCurrentState() {
+        if (currentTab === 'dist') {
+            tabStates.dist.b = document.getElementById('dist-input-b').value;
+            tabStates.dist.h = document.getElementById('dist-input-h').value;
+            tabStates.dist.x = document.getElementById('dist-select-x').value;
+            tabStates.dist.a = document.getElementById('dist-input-a').value;
+        } else {
+            tabStates[currentTab].input = document.getElementById('elbow-input').value;
+            tabStates[currentTab].size = document.getElementById('elbow-size').value;
+        }
+    }
+
+    function restoreState(tabId) {
+        if (tabId === 'dist') {
+            document.getElementById('dist-input-b').value = tabStates.dist.b;
+            document.getElementById('dist-input-h').value = tabStates.dist.h;
+            document.getElementById('dist-select-x').value = tabStates.dist.x;
+            document.getElementById('dist-input-a').value = tabStates.dist.a;
+        } else {
+            document.getElementById('elbow-input').value = tabStates[tabId].input;
+            document.getElementById('elbow-size').value = tabStates[tabId].size;
+        }
+    }
+
+    // --- スワイプ機能 ---
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const tabs = ['90', '45', 'dist'];
+
+    document.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, {passive: true});
+
+    document.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, {passive: true});
+
+    function handleSwipe() {
+        const swipeDistance = touchEndX - touchStartX;
+        const threshold = 70; // スワイプと判定する距離
+
+        if (Math.abs(swipeDistance) > threshold) {
+            let currentIndex = tabs.indexOf(currentTab);
+            if (swipeDistance > 0) {
+                // 右スワイプ -> 前のタブ
+                if (currentIndex > 0) switchTab(tabs[currentIndex - 1]);
+            } else {
+                // 左スワイプ -> 次のタブ
+                if (currentIndex < tabs.length - 1) switchTab(tabs[currentIndex + 1]);
+            }
+        }
+    }
+
+    // --- エルボ計算 ---
+    function elbowCalc() {
+        if (currentTab === 'dist') return;
+        
+        const size = document.getElementById('elbow-size').value;
+        const inputEl = document.getElementById('elbow-input');
+        let valStr = inputEl.value;
+        let rawInput = unformatNum(valStr).replace(/[^\d.]/g, "");
+
+        if (rawInput !== "") {
+            const parts = rawInput.split(".");
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            const formatted = parts.join(".");
+            if (valStr !== formatted) inputEl.value = formatted;
+        }
+
+        const { d, e } = elbowData[currentTab][size];
+        document.getElementById('elbow-d-val').innerText = d;
+
+        const c = parseFloat(rawInput);
+        const resultEl = document.getElementById('elbow-result-val');
+        const saveBtn = document.getElementById('elbow-save-btn');
+
+        if (isNaN(c)) {
+            resultEl.innerText = "---";
+            saveBtn.disabled = true;
+            return;
+        }
+
+        let res;
+        if (currentTab === "90") {
+            res = Math.round((c - ((e * 2) - (d * 2))) * 10) / 10;
+        } else {
+            const cos45 = Math.cos(45 * Math.PI / 180);
+            res = Math.ceil((c / cos45) - ((e - d) * 2));
+        }
+
+        resultEl.innerText = formatNum(res);
+        saveBtn.disabled = false;
+        
+        // 状態を随時保存
+        tabStates[currentTab].input = inputEl.value;
+        tabStates[currentTab].size = size;
+    }
+
+    function saveElbowHistory(method = 'enter') {
+        const size = document.getElementById('elbow-size').value;
+        const input = document.getElementById('elbow-input').value;
+        const result = document.getElementById('elbow-result-val').innerText;
+        
+        if (result === "---") return;
+
+        const newItem = {
+            id: Date.now(),
+            mode: currentTab,
+            size,
+            input,
+            result,
+            method
         };
-    });
-}
 
-function saveToHistory(method = 'enter') {
-    const now = Date.now();
-    if (now - lastSavedTimestamp < 300) return;
-
-    if (currentCalculatedResult) {
         if (method === 'enter') {
-            const currentAutoHistories = histories.filter(h => h.mode === currentMode && h.method === 'enter');
-            if (currentAutoHistories.length >= 5) {
-                const oldestAutoIdx = histories.findIndex(h => h.mode === currentMode && h.method === 'enter');
-                if (oldestAutoIdx !== -1) {
-                    histories.splice(oldestAutoIdx, 1);
-                }
+            const autos = histories.filter(h => h.mode === currentTab && h.method === 'enter');
+            if (autos.length >= 5) {
+                const oldestIdx = histories.findIndex(h => h.mode === currentTab && h.method === 'enter');
+                if (oldestIdx !== -1) histories.splice(oldestIdx, 1);
             }
         }
 
-        histories.push({ 
-            ...currentCalculatedResult, 
-            timestamp: now,
-            method: method 
-        });
-
-        if (histories.length > 1000) histories.shift();
-
+        histories.push(newItem);
         localStorage.setItem(storageKey, JSON.stringify(histories));
-        renderHistory();
-        lastSavedTimestamp = now;
-        
-        elements.saveBtn.classList.add("success");
-        setTimeout(() => {
-            elements.saveBtn.classList.remove("success");
-        }, 800);
+        renderElbowHistory();
+
+        const btn = document.getElementById('elbow-save-btn');
+        btn.innerText = "✓ 保存しました";
+        setTimeout(() => btn.innerText = "★ 履歴に保存", 800);
     }
-}
 
-function handleGesture() {
-    const diff = touchEndX - touchStartX;
-    if (Math.abs(diff) > swipeThreshold) {
-        const nextMode = currentMode === "90" ? "45" : "90";
-        switchMode(nextMode);
+    function renderElbowHistory() {
+        const listEl = document.getElementById('elbow-history-list');
+        listEl.innerHTML = "";
+        const filtered = histories.filter(h => h.mode === currentTab).reverse();
+
+        if (filtered.length === 0) {
+            listEl.innerHTML = '<div class="text-center py-4 text-zinc-700 text-xs">履歴はありません</div>';
+            return;
+        }
+
+        filtered.forEach(item => {
+            const div = document.createElement('div');
+            div.className = "history-item";
+            div.innerHTML = `
+                <div class="flex items-center gap-2">
+                    ${item.method === 'button' ? '<span class="text-orange-500 font-bold">★</span>' : ''}
+                    <span class="bg-zinc-800 text-[10px] px-2 py-0.5 rounded border border-zinc-700 font-bold">${item.size}</span>
+                    <span class="text-xs text-zinc-400">入:${item.input}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="font-black text-lg">${item.result}</span>
+                    <button onclick="deleteHistory(${item.id})" class="text-red-500 font-bold text-xl px-2">&times;</button>
+                </div>
+            `;
+            listEl.appendChild(div);
+        });
     }
-}
 
-elements.card.addEventListener('touchstart', e => {
-    touchStartX = e.changedTouches[0].screenX;
-}, { passive: true });
+    function deleteHistory(id) {
+        histories = histories.filter(h => h.id !== id);
+        localStorage.setItem(storageKey, JSON.stringify(histories));
+        renderElbowHistory();
+    }
 
-elements.card.addEventListener('touchend', e => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleGesture();
-}, { passive: true });
-
-elements.saveBtn.addEventListener("click", () => saveToHistory('button'));
-
-elements.inputEl.addEventListener("focus", function() {
-    setTimeout(() => {
-        this.setSelectionRange(0, 9999);
-    }, 50);
-});
-
-elements.inputEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        if (!elements.saveBtn.disabled) {
-            saveToHistory('enter');
-            elements.inputEl.blur();
+    function clearElbowHistory() {
+        if (confirm(`${currentTab}°エルボの履歴をクリアしますか？`)) {
+            histories = histories.filter(h => h.mode !== currentTab);
+            localStorage.setItem(storageKey, JSON.stringify(histories));
+            renderElbowHistory();
         }
     }
-});
 
-elements.inputEl.addEventListener("blur", () => {
-    if (!elements.saveBtn.disabled && elements.inputEl.value !== "" && elements.inputEl.value !== "0") {
-        saveToHistory('enter');
+    // --- 距離計算 ---
+    function distCalc() {
+        const bRaw = unformatNum(document.getElementById('dist-input-b').value);
+        const hRaw = unformatNum(document.getElementById('dist-input-h').value);
+        const aRaw = unformatNum(document.getElementById('dist-input-a').value);
+        const xVal = parseFloat(document.getElementById('dist-select-x').value);
+        const resValEl = document.getElementById('dist-result-val');
+
+        if (!hRaw || !bRaw || !aRaw) {
+            resValEl.innerText = "---";
+            return;
+        }
+
+        const h = parseFloat(hRaw), bBase = parseFloat(bRaw), a = parseFloat(aRaw);
+        const bCalc = bBase + xVal;
+        const cSquared = (a * a) + (bCalc * bCalc) - (2 * bCalc * h);
+
+        if (cSquared < 0) {
+            resValEl.innerText = "エラー";
+        } else {
+            const res = Math.ceil(Math.sqrt(cSquared));
+            resValEl.innerText = formatNum(res);
+        }
+        
+        // 状態保存
+        tabStates.dist = {
+            b: document.getElementById('dist-input-b').value,
+            h: document.getElementById('dist-input-h').value,
+            x: document.getElementById('dist-select-x').value,
+            a: document.getElementById('dist-input-a').value
+        };
     }
-});
 
-elements.sizeEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        elements.inputEl.focus();
+    function clearDistFields() {
+        ['dist-input-b', 'dist-input-h', 'dist-input-a'].forEach(id => document.getElementById(id).value = "");
+        document.getElementById('dist-result-val').innerText = "---";
+        tabStates.dist = { b: '', h: '', x: '57', a: '' };
+        document.getElementById('dist-input-b').focus();
     }
-});
 
-elements.sizeEl.addEventListener("change", () => {
-    calc();
-    setTimeout(() => {
-        elements.inputEl.focus();
-    }, 100);
-});
-
-document.addEventListener("touchstart", (e) => {
-    if (e.target.tagName !== "INPUT" && e.target.tagName !== "SELECT" && e.target.tagName !== "BUTTON") {
-        if (document.activeElement) document.activeElement.blur();
+    function copyDistResult() {
+        const res = document.getElementById('dist-result-val').innerText;
+        if (res === "---" || res === "エラー") return;
+        const temp = document.createElement('textarea');
+        temp.value = unformatNum(res);
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        showToast("コピーしました");
     }
-}, { passive: true });
 
-elements.clearAllBtn.addEventListener("click", () => {
-    elements.modalMsg.textContent = `現在の${currentMode}°エルボの履歴を全てクリアしますか？`;
-    elements.modal.style.display = "flex";
-});
+    // --- 初期化 ---
+    function init() {
+        // エルボイベント
+        const elbowInput = document.getElementById('elbow-input');
+        elbowInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                saveElbowHistory('enter');
+                elbowInput.blur();
+            }
+        });
+        elbowInput.addEventListener('blur', () => {
+            if (elbowInput.value && elbowInput.value !== "0") saveElbowHistory('enter');
+        });
 
-elements.modalCancel.addEventListener("click", () => {
-    elements.modal.style.display = "none";
-});
+        // 距離計算イベント
+        const distIds = ['dist-input-b', 'dist-input-h', 'dist-input-a'];
+        distIds.forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', (e) => {
+                let val = unformatNum(e.target.value);
+                if (val !== "" && !isNaN(val)) e.target.value = formatNum(val);
+                distCalc();
+            });
+            el.addEventListener('focus', () => el.select());
+        });
+        document.getElementById('dist-select-x').addEventListener('change', distCalc);
 
-elements.modalConfirm.addEventListener("click", () => {
-    histories = histories.filter(item => item.mode !== currentMode);
-    localStorage.setItem(storageKey, JSON.stringify(histories));
-    renderHistory();
-    elements.modal.style.display = "none";
-});
+        // Enterでのフォーカス移動
+        document.getElementById('dist-input-b').onkeydown = e => { if(e.key === 'Enter') document.getElementById('dist-input-h').focus(); };
+        document.getElementById('dist-input-h').onkeydown = e => { if(e.key === 'Enter') document.getElementById('dist-select-x').focus(); };
+        document.getElementById('dist-select-x').onkeydown = e => { if(e.key === 'Enter') document.getElementById('dist-input-a').focus(); };
+        document.getElementById('dist-input-a').onkeydown = e => { if(e.key === 'Enter') { distCalc(); document.getElementById('dist-input-b').focus(); }};
 
-elements.tabBtns.forEach(btn => btn.onclick = () => switchMode(btn.dataset.mode));
-elements.inputEl.oninput = calc;
+        elbowCalc();
+        renderElbowHistory();
+    }
 
-window.onload = () => {
-    calc();
-    renderHistory();
-};
+    window.onload = init;
 </script>
 
 </body>
