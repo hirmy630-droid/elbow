@@ -47,7 +47,7 @@
             width: 100%;
             background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(10px);
-            padding: 12px 0;
+            padding: 8px 0;
             display: flex;
             justify-content: center;
         }
@@ -55,8 +55,8 @@
         .tab-container {
             display: flex;
             background: var(--ios-card);
-            padding: 4px;
-            border-radius: 18px;
+            padding: 3px;
+            border-radius: 16px;
             width: 95%;
             max-width: 420px;
             border: 1px solid var(--ios-border);
@@ -65,20 +65,20 @@
 
         .tab-button {
             flex: 1;
-            padding: 10px 4px;
+            padding: 6px 4px; /* 縦幅を小さく調整 */
             border: none;
             background: transparent;
             color: #d1d1d6;
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
-            border-radius: 14px;
+            border-radius: 12px;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             white-space: nowrap;
         }
 
         @media (min-width: 380px) {
-            .tab-button { font-size: 15px; padding: 12px; }
+            .tab-button { font-size: 14px; padding: 8px 4px; } /* メディアクエリ時も小さめに */
         }
 
         .tab-button.active {
@@ -377,6 +377,7 @@
 <script>
     let currentTab = '90';
     const storageKey = 'kyowa_unified_v5';
+    const tabList = ['90', '45', 'dist'];
     
     const tabStates = {
         '90': { input: '', size: '100' },
@@ -391,37 +392,7 @@
         "45": { 75: { d: 30, e: 65 }, 100: { d: 40, e: 80 }, 125: { d: 50, e: 103 } }
     };
 
-    function formatNum(num) {
-        if (num === null || isNaN(num) || num === "") return "---";
-        const parts = num.toString().split(".");
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        return parts.join(".");
-    }
-
-    function unformatNum(str) { return str.toString().replace(/,/g, ""); }
-
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2000);
-    }
-
-    function copyResult(elementId) {
-        const val = document.getElementById(elementId).innerText;
-        if (val === "---" || val === "エラー") return;
-        const temp = document.createElement('textarea');
-        temp.value = unformatNum(val);
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand('copy');
-        document.body.removeChild(temp);
-        showToast("コピーしました");
-    }
-
-    function openModal() { document.getElementById('modal-overlay').style.display = 'flex'; }
-    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
-
+    // タブ切り替え
     function switchTab(tabId) {
         if (tabId === currentTab) return;
         
@@ -437,7 +408,7 @@
 
         currentTab = tabId;
         
-        ['90', '45', 'dist'].forEach(id => {
+        tabList.forEach(id => {
             document.getElementById(`nav-${id}`).classList.toggle('active', id === tabId);
         });
 
@@ -470,6 +441,73 @@
         window.scrollTo(0, 0);
     }
 
+    // スワイプ機能の実装
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const swipeThreshold = 60; 
+    const verticalThreshold = 40;
+
+    window.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].clientX;
+        touchStartY = e.changedTouches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        
+        const diffX = touchEndX - touchStartX;
+        const diffY = Math.abs(touchEndY - touchStartY);
+
+        if (['INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
+        if (diffY > verticalThreshold) return;
+
+        const currentIndex = tabList.indexOf(currentTab);
+
+        if (diffX < -swipeThreshold) {
+            if (currentIndex < tabList.length - 1) {
+                switchTab(tabList[currentIndex + 1]);
+            }
+        } else if (diffX > swipeThreshold) {
+            if (currentIndex > 0) {
+                switchTab(tabList[currentIndex - 1]);
+            }
+        }
+    }, { passive: true });
+
+    // ユーティリティ
+    function formatNum(num) {
+        if (num === null || isNaN(num) || num === "") return "---";
+        const parts = num.toString().split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join(".");
+    }
+
+    function unformatNum(str) { return str.toString().replace(/,/g, ""); }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    function copyResult(elementId) {
+        const val = document.getElementById(elementId).innerText;
+        if (val === "---" || val === "エラー") return;
+        const temp = document.createElement('textarea');
+        temp.value = unformatNum(val);
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        showToast("コピーしました");
+    }
+
+    function openModal() { document.getElementById('modal-overlay').style.display = 'flex'; }
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+    // エルボ計算ロジック
     function elbowCalc() {
         if (currentTab === 'dist') return;
         const size = document.getElementById('elbow-size').value;
@@ -498,17 +536,16 @@
         tabStates[currentTab].input = inputEl.value;
     }
 
+    // 履歴保存
     function saveElbowHistory() {
         const size = document.getElementById('elbow-size').value;
         const input = document.getElementById('elbow-input').value;
         const result = document.getElementById('elbow-result-val').innerText;
         if (result === "---") return;
 
-        // 同じ内容が直近に保存されていないかチェック
         const last = histories[histories.length - 1];
         if (last && last.mode === currentTab && last.input === input && last.size === size) return;
 
-        // 自動保存の制限（ロックされていないものを削除対象にする）
         const autos = histories.filter(h => h.mode === currentTab && !h.locked);
         if (autos.length >= 3) {
             const oldestIdx = histories.findIndex(h => h.mode === currentTab && !h.locked);
@@ -532,7 +569,6 @@
         const listEl = document.getElementById('elbow-history-list');
         listEl.innerHTML = "";
         
-        // ソート: 保護(locked)されているものを上、次にID(新しい順)
         const filtered = histories.filter(h => h.mode === currentTab).sort((a, b) => {
             if (a.locked !== b.locked) return b.locked ? 1 : -1;
             return b.id - a.id;
@@ -645,6 +681,10 @@
             el.addEventListener('focus', () => el.select());
         });
         document.getElementById('dist-select-x').addEventListener('change', distCalc);
+
+        document.addEventListener('touchstart', e => { 
+            if (!['INPUT', 'SELECT', 'BUTTON'].includes(e.target.tagName)) if (document.activeElement) document.activeElement.blur(); 
+        }, {passive:true});
 
         elbowCalc();
         renderElbowHistory();
