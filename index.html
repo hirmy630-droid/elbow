@@ -294,7 +294,6 @@
                 </div>
 
                 <div class="cell-grid">
-                    <!-- ID cell-dist-b を追加して縁取りに対応 -->
                     <div class="calc-cell calc-cell-sm" id="cell-dist-b" onclick="focusInput('dist-input-b')">
                         <span class="input-label-left">足長</span>
                         <div id="dist-input-b" class="input-value input-value-sm">0</div>
@@ -307,7 +306,6 @@
                             <option value="70">125</option>
                         </select>
                     </div>
-                    <!-- 直線距離と移動寸法 -->
                     <div class="calc-cell" id="cell-dist-h" onclick="focusInput('dist-input-h')">
                         <span class="input-label-left">直線</span>
                         <div id="dist-input-h" class="input-value input-value-sm">0</div>
@@ -376,7 +374,7 @@
     let currentTab = '90';
     let focusedInputId = 'elbow-input-90';
     let isOverwriteMode = true;
-    const storageKey = 'kyowa_calc_v36';
+    const storageKey = 'kyowa_calc_v41';
     
     const inputs = {
         'elbow-input-90': '', 'elbow-input-45': '',
@@ -594,15 +592,19 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </button>
                 <div class="flex-1">
-                    <div class="text-[12px] font-black text-zinc-500 mb-0.5">${h.size}サイズ / 入力:${h.input}</div>
+                    <!-- フォントサイズを14pxにアップし、色をシルバーに変更 -->
+                    <div class="text-[14px] font-black text-[var(--ios-silver)] mb-0.5">${h.size}サイズ / 入力:${h.input}</div>
                     <div class="text-xl font-black">${h.result}</div>
                 </div>
+                <!-- ロックされている場合は削除ボタンを表示しない -->
+                ${!h.locked ? `
                 <button onclick="deleteHistoryItem(${h.id})" class="p-2 text-zinc-500">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
+                ` : '<div class="p-2 w-[36px]"></div>'}
             `;
             list.appendChild(div);
         });
