@@ -375,7 +375,7 @@
     let currentTab = '90';
     let focusedInputId = 'elbow-input-90';
     let isOverwriteMode = true;
-    const storageKey = 'kyowa_calc_v34';
+    const storageKey = 'kyowa_calc_v35';
     
     const inputs = {
         'elbow-input-90': '', 'elbow-input-45': '',
@@ -415,17 +415,16 @@
                 clearDistInputs();
                 return;
             }
-            val = val.slice(0, -1);
+            val = val.toString().slice(0, -1);
             isOverwriteMode = false;
         } else if (key === 'enter') {
             handleEnter();
             return;
         } else if (key === '.') {
-            // モードに関わらず小数点のロジックを適用
             if (isOverwriteMode) { 
                 val = '0.'; 
                 isOverwriteMode = false; 
-            } else if (!val.includes('.')) {
+            } else if (!val.toString().includes('.')) {
                 val += val === '' ? '0.' : '.';
             }
         } else {
@@ -569,6 +568,14 @@
         if (h) { h.locked = !h.locked; localStorage.setItem(storageKey, JSON.stringify(histories)); renderHistory(); }
     }
 
+    // 履歴アイテムを個別に削除
+    function deleteHistoryItem(id) {
+        histories = histories.filter(h => h.id !== id);
+        localStorage.setItem(storageKey, JSON.stringify(histories));
+        renderHistory();
+        showToast("削除しました");
+    }
+
     function renderHistory() {
         const list = document.getElementById('history-list');
         list.innerHTML = "";
@@ -585,8 +592,12 @@
                     <div class="text-[13px] font-black text-zinc-500 mb-0.5">${h.size}サイズ / 入力:${h.input}</div>
                     <div class="text-xl font-black">${h.result}</div>
                 </div>
-                <button onclick="copyRaw('${h.result}')" class="p-2 text-zinc-500">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <!-- 削除ボタン (×) -->
+                <button onclick="deleteHistoryItem(${h.id})" class="p-2 text-zinc-500">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                 </button>
             `;
             list.appendChild(div);
