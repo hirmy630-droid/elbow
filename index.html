@@ -294,7 +294,8 @@
                 </div>
 
                 <div class="cell-grid">
-                    <div class="calc-cell calc-cell-sm" onclick="focusInput('dist-input-b')">
+                    <!-- ID cell-dist-b を追加して縁取りに対応 -->
+                    <div class="calc-cell calc-cell-sm" id="cell-dist-b" onclick="focusInput('dist-input-b')">
                         <span class="input-label-left">足長</span>
                         <div id="dist-input-b" class="input-value input-value-sm">0</div>
                     </div>
@@ -306,7 +307,7 @@
                             <option value="70">125</option>
                         </select>
                     </div>
-                    <!-- 直線距離と移動寸法を1行（横幅半分ずつ）にまとめました -->
+                    <!-- 直線距離と移動寸法 -->
                     <div class="calc-cell" id="cell-dist-h" onclick="focusInput('dist-input-h')">
                         <span class="input-label-left">直線</span>
                         <div id="dist-input-h" class="input-value input-value-sm">0</div>
@@ -323,7 +324,6 @@
                 <button class="key-btn" onclick="pressKey('7')">7</button>
                 <button class="key-btn" onclick="pressKey('8')">8</button>
                 <button class="key-btn" onclick="pressKey('9')">9</button>
-                <!-- 距離計算のときは「C」、エルボのときは「⇦」 -->
                 <button class="key-btn gray" id="delete-btn-label" onclick="pressKey('backspace')">⇦</button>
                 
                 <button class="key-btn" onclick="pressKey('4')">4</button>
@@ -410,16 +410,16 @@
         
         if (key === 'clear') {
             if (currentTab === 'dist') {
-                clearDistInputs(); // AC: 全入力クリア
+                clearDistInputs();
                 return;
             }
             val = '';
             isOverwriteMode = false;
         } else if (key === 'backspace') {
             if (currentTab === 'dist') {
-                val = ''; // C: 現在の入力枠をクリア
+                val = '';
             } else {
-                val = val.toString().slice(0, -1); // エルボ時は1文字削除
+                val = val.toString().slice(0, -1);
             }
             isOverwriteMode = false;
         } else if (key === 'enter') {
@@ -497,12 +497,12 @@
 
         if (isDist) {
             enterBtn.innerText = '⏎';
-            delBtn.innerText = 'C'; // 距離計算モードのときは「C」
+            delBtn.innerText = 'C';
             focusInput('dist-input-h');
             distCalc();
         } else {
             enterBtn.innerText = '保存';
-            delBtn.innerText = '⇦'; // エルボモードのときは「⇦」
+            delBtn.innerText = '⇦';
             updateDisplay('elbow-input', inputs[`elbow-input-${tabId}`]);
             focusInput('elbow-input');
             elbowCalc();
