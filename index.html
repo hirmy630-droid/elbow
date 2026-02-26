@@ -17,6 +17,7 @@
             --ios-silver: #c7c7cc;
             --ios-silver-dark: #9a9a9e;
             --label-gray: #b0b0b5;
+            --unfocused-border: #444446; /* 未選択時の明るいグレー */
         }
 
         * {
@@ -70,6 +71,7 @@
             border-radius: 9px;
             cursor: pointer;
             transition: 0.2s;
+            border: 1.5px solid transparent;
         }
 
         .tab-button.active {
@@ -78,9 +80,10 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
-        .mode-90 #nav-90.active { color: #a2a0ff; }
-        .mode-45 #nav-45.active { color: #63ff8b; }
-        .mode-dist #nav-dist.active { color: #7cb1ff; }
+        /* モードごとのアクティブタブの縁の色 */
+        .mode-90 #nav-90.active { border-color: var(--accent-90); }
+        .mode-45 #nav-45.active { border-color: var(--accent-45); }
+        .mode-dist #nav-dist.active { border-color: var(--accent-dist); }
 
         /* スワイプコンテナ */
         #swipe-container {
@@ -115,7 +118,6 @@
 
         .mode-90 .result-box { background: var(--accent-90); }
         .mode-45 .result-box { background: var(--accent-45); }
-
         .mode-dist .result-box { background: var(--accent-dist); }
 
         /* セルグリッド */
@@ -135,14 +137,14 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: inset 0 0 0 1.5px var(--unfocused-border); /* 未選択時のボーダー */
         }
 
-        .calc-cell-sm { height: 46px; }
         .full-width { grid-column: span 2; }
 
         .calc-cell.focused {
             background: #1c1c1e;
-            box-shadow: inset 0 0 0 2px var(--ios-orange);
+            box-shadow: inset 0 0 0 1.5px var(--ios-orange); /* 選択時のオレンジボーダー */
             z-index: 10;
         }
 
@@ -154,7 +156,7 @@
         }
 
         .result-label-left {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             color: #ffffff;
         }
@@ -166,7 +168,6 @@
             text-align: right;
             flex: 1;
         }
-        .input-value-sm { font-size: 22px; }
 
         .result-value {
             font-size: 32px;
@@ -267,17 +268,17 @@
                 </div>
 
                 <div class="cell-grid">
-                    <div class="calc-cell calc-cell-sm">
+                    <div class="calc-cell">
                         <span class="input-label-left">サイズ</span>
-                        <select id="elbow-size" class="input-value input-value-sm" onchange="elbowCalc()">
+                        <select id="elbow-size" class="input-value" onchange="elbowCalc()">
                             <option value="75">75</option>
                             <option value="100" selected>100</option>
                             <option value="125">125</option>
                         </select>
                     </div>
-                    <div class="calc-cell calc-cell-sm" style="background: #0d0d0f;">
+                    <div class="calc-cell" style="background: #0d0d0f;">
                         <span class="input-label-left">重寸法</span>
-                        <span class="input-value text-zinc-600 input-value-sm" id="elbow-d-val">--</span>
+                        <span class="input-value text-zinc-600" id="elbow-d-val">--</span>
                     </div>
                     <div class="calc-cell full-width focused" id="cell-elbow-input" onclick="focusInput('elbow-input')">
                         <span class="input-label-left">入力寸法</span>
@@ -297,13 +298,13 @@
                 </div>
 
                 <div class="cell-grid">
-                    <div class="calc-cell calc-cell-sm" id="cell-dist-b" onclick="focusInput('dist-input-b')">
+                    <div class="calc-cell" id="cell-dist-b" onclick="focusInput('dist-input-b')">
                         <span class="input-label-left">足長</span>
-                        <div id="dist-input-b" class="input-value input-value-sm">0</div>
+                        <div id="dist-input-b" class="input-value">0</div>
                     </div>
-                    <div class="calc-cell calc-cell-sm">
+                    <div class="calc-cell">
                         <span class="input-label-left">エルボ</span>
-                        <select id="dist-select-x" class="input-value input-value-sm" onchange="distCalc()">
+                        <select id="dist-select-x" class="input-value" onchange="distCalc()">
                             <option value="45">75</option>
                             <option value="57" selected>100</option>
                             <option value="70">125</option>
@@ -311,11 +312,11 @@
                     </div>
                     <div class="calc-cell" id="cell-dist-h" onclick="focusInput('dist-input-h')">
                         <span class="input-label-left">直線</span>
-                        <div id="dist-input-h" class="input-value input-value-sm">0</div>
+                        <div id="dist-input-h" class="input-value">0</div>
                     </div>
                     <div class="calc-cell" id="cell-dist-a" onclick="focusInput('dist-input-a')">
                         <span class="input-label-left">移動</span>
-                        <div id="dist-input-a" class="input-value input-value-sm">0</div>
+                        <div id="dist-input-a" class="input-value">0</div>
                     </div>
                 </div>
             </div>
@@ -344,7 +345,6 @@
 
             <div id="dist-diagram-wrapper" class="diagram-container hidden">
                 <svg viewBox="0 0 360 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
-                    <!-- 管路図面 -->
                     <line x1="100" y1="10" x2="160" y2="10" stroke="white" stroke-width="2" />
                     <line x1="140" y1="10" x2="140" y2="25" stroke="white" stroke-width="2" />
                     <circle cx="140" cy="45" r="16.2" fill="none" stroke="white" stroke-width="2" />
@@ -352,16 +352,12 @@
                     <rect x="175" y="60" width="80" height="34" rx="6" fill="black" stroke="white" stroke-width="1.5" />
                     <text id="dist-diagram-result" x="215" y="84" fill="white" font-size="22" font-weight="700" text-anchor="middle">---</text>
                     <circle cx="280" cy="125" r="16.2" fill="none" stroke="white" stroke-width="2" />
-
-                    <!-- 直線距離 寸法補助線と寸法線 -->
                     <line x1="100" y1="10" x2="140" y2="10" stroke="#3b82f6" stroke-width="1" opacity="0.5" />
                     <line x1="100" y1="125" x2="280" y2="125" stroke="#3b82f6" stroke-width="1" opacity="0.5" />
                     <line x1="100" y1="10" x2="100" y2="125" stroke="#3b82f6" stroke-width="2" />
                     <line x1="95" y1="10" x2="105" y2="10" stroke="#3b82f6" stroke-width="2" />
                     <line x1="95" y1="125" x2="105" y2="125" stroke="#3b82f6" stroke-width="2" />
                     <text x="5" y="75" fill="#3b82f6" font-size="15" font-weight="bold">直線距離</text>
-
-                    <!-- 移動寸法 寸法補助線と寸法線 -->
                     <line x1="140" y1="45" x2="140" y2="155" stroke="#3b82f6" stroke-width="1" opacity="0.5" />
                     <line x1="280" y1="125" x2="280" y2="155" stroke="#3b82f6" stroke-width="1" opacity="0.5" />
                     <line x1="140" y1="155" x2="280" y2="155" stroke="#3b82f6" stroke-width="2" />
@@ -391,6 +387,7 @@
     let focusedInputId = 'elbow-input-90';
     let isOverwriteMode = true;
     const storageKey = 'kyowa_calc_v41';
+    const lastTabKey = 'kyowa_last_tab';
     
     const inputs = {
         'elbow-input-90': '', 'elbow-input-45': '',
@@ -492,10 +489,10 @@
         return parts.join(".");
     }
 
-    function switchTab(tabId) {
-        if (tabId === currentTab) return;
+    function switchTab(tabId, isAutoLoad = false) {
         currentTab = tabId;
-        
+        localStorage.setItem(lastTabKey, tabId);
+
         document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
         document.getElementById(`nav-${tabId}`).classList.add('active');
         document.body.className = `mode-${tabId}`;
@@ -524,7 +521,6 @@
         }
     }
 
-    // スワイプ処理
     let startX = 0;
     const swipeArea = document.getElementById('swipe-container');
     swipeArea.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
@@ -538,7 +534,9 @@
 
     function elbowCalc() {
         const size = document.getElementById('elbow-size').value;
-        const { d, e } = elbowData[currentTab][size];
+        const data = elbowData[currentTab] ? elbowData[currentTab][size] : null;
+        if (!data) return;
+        const { d, e } = data;
         document.getElementById('elbow-d-val').innerText = d;
         const c = parseFloat(inputs[`elbow-input-${currentTab}`]);
         const resEl = document.getElementById('elbow-result-val');
@@ -648,7 +646,15 @@
         setTimeout(() => t.classList.remove('show'), 1000);
     }
 
-    window.onload = () => { elbowCalc(); renderHistory(); };
+    window.onload = () => {
+        const lastTab = localStorage.getItem(lastTabKey);
+        if (lastTab && (lastTab === '90' || lastTab === '45' || lastTab === 'dist')) {
+            switchTab(lastTab, true);
+        } else {
+            elbowCalc();
+            renderHistory();
+        }
+    };
 </script>
 </body>
 </html>
