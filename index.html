@@ -300,7 +300,7 @@
                 <div class="cell-grid">
                     <div class="calc-cell">
                         <span class="input-label-left">サイズ</span>
-                        <select id="elbow-size" class="input-value" onchange="elbowCalc()">
+                        <select id="elbow-size" class="input-value" onchange="syncAndCalc(this.value)">
                             <option value="75">75</option>
                             <option value="100" selected>100</option>
                             <option value="125">125</option>
@@ -311,7 +311,7 @@
                         <span class="input-value text-zinc-600" id="elbow-d-val">--</span>
                     </div>
                     <div class="calc-cell full-width focused" id="cell-elbow-input" onclick="focusInput('elbow-input')">
-                        <span class="input-label-left">入力寸法</span>
+                        <span class="input-label-left">芯-芯寸法</span>
                         <div id="elbow-input" class="input-value">0</div>
                     </div>
                 </div>
@@ -333,11 +333,11 @@
                         <div id="dist-input-b" class="input-value">0</div>
                     </div>
                     <div class="calc-cell">
-                        <span class="input-label-left">エルボ</span>
-                        <select id="dist-select-x" class="input-value" onchange="distCalc()">
-                            <option value="45">75</option>
-                            <option value="57" selected>100</option>
-                            <option value="70">125</option>
+                        <span class="input-label-left">サイズ</span>
+                        <select id="dist-select-size" class="input-value" onchange="syncAndCalc(this.value)">
+                            <option value="75">75</option>
+                            <option value="100" selected>100</option>
+                            <option value="125">125</option>
                         </select>
                     </div>
                     <div class="calc-cell" id="cell-dist-h" onclick="focusInput('dist-input-h')">
@@ -356,7 +356,7 @@
                 <button class="key-btn" onclick="pressKey('7')">7</button>
                 <button class="key-btn" onclick="pressKey('8')">8</button>
                 <button class="key-btn" onclick="pressKey('9')">9</button>
-                <button class="key-btn gray" id="delete-btn-label" onclick="pressKey('backspace')">⇦</button>
+                <button class="key-btn gray" id="delete-btn-label" onclick="pressKey('backspace')">貼付</button>
                 
                 <button class="key-btn" onclick="pressKey('4')">4</button>
                 <button class="key-btn" onclick="pressKey('5')">5</button>
@@ -428,6 +428,15 @@
         "45": { 75: { d: 30, e: 65 }, 100: { d: 40, e: 80 }, 125: { d: 50, e: 103 } }
     };
 
+    const distXData = { 75: 45, 100: 57, 125: 70 };
+
+    function syncAndCalc(val) {
+        document.getElementById('elbow-size').value = val;
+        document.getElementById('dist-select-size').value = val;
+        distCalc();
+        elbowCalc();
+    }
+
     function focusInput(id) {
         const internalId = (id === 'elbow-input') ? `elbow-input-${currentTab}` : id;
         document.querySelectorAll('.calc-cell').forEach(el => el.classList.remove('focused'));
@@ -443,7 +452,7 @@
         isOverwriteMode = true;
     }
 
-    function pressKey(key) {
+    async function pressKey(key) {
         let val = inputs[focusedInputId] || '';
         
         if (key === 'clear') {
@@ -457,7 +466,21 @@
             if (currentTab === 'dist') {
                 val = '';
             } else {
-                val = val.toString().slice(0, -1);
+                try {
+                    const text = await navigator.clipboard.readText();
+                    const cleanText = text.replace(/[^0-9.]/g, '');
+                    if (cleanText) {
+                        val = cleanText;
+                        isOverwriteMode = false;
+                        showToast("貼り付けました");
+                    } else {
+                        showToast("有効な数値がありません");
+                        return;
+                    }
+                } catch (err) {
+                    showToast("貼り付けに失敗しました");
+                    return;
+                }
             }
             isOverwriteMode = false;
         } else if (key === 'enter') {
@@ -540,7 +563,7 @@
             distCalc();
         } else {
             enterBtn.innerText = '保存';
-            delBtn.innerText = '⇦';
+            delBtn.innerText = '貼付';
             updateDisplay('elbow-input', inputs[`elbow-input-${tabId}`]);
             focusInput('elbow-input');
             elbowCalc();
@@ -561,16 +584,20 @@
 
     function elbowCalc() {
         const size = document.getElementById('elbow-size').value;
-        const data = elbowData[currentTab] ? elbowData[currentTab][size] : null;
+        const data = elbowData[currentTab] ? elbowData[currentTab][size] : elbowData["90"][size];
         if (!data) return;
         const { d, e } = data;
         document.getElementById('elbow-d-val').innerText = d;
         const c = parseFloat(inputs[`elbow-input-${currentTab}`]);
         const resEl = document.getElementById('elbow-result-val');
         if (isNaN(c) || c === 0) { resEl.innerText = "---"; return; }
-        let res = currentTab === "90" 
-            ? Math.round((c - ((e * 2) - (d * 2))) * 10) / 10 
-            : Math.ceil((c / Math.cos(45 * Math.PI / 180)) - ((e - d) * 2));
+        
+        let res = 0;
+        if (currentTab === "45") {
+             res = Math.ceil((c / Math.cos(45 * Math.PI / 180)) - ((e - d) * 2));
+        } else {
+             res = Math.round((c - ((e * 2) - (d * 2))) * 10) / 10;
+        }
         resEl.innerText = formatNum(res);
     }
 
@@ -578,14 +605,30 @@
         const b = parseFloat(inputs['dist-input-b']) || 0;
         const h = parseFloat(inputs['dist-input-h']);
         const a = parseFloat(inputs['dist-input-a']);
-        const x = parseFloat(document.getElementById('dist-select-x').value);
+        const size = document.getElementById('dist-select-size').value;
+        const x = distXData[size];
+        
         const resEl = document.getElementById('dist-result-val');
         const diagRes = document.getElementById('dist-diagram-result');
-        if (isNaN(h) || isNaN(a)) { resEl.innerText = "---"; diagRes.textContent = "---"; return; }
-        const resultSq = Math.pow(h - (b + x), 2) + Math.pow(a, 2);
-        const res = formatNum(Math.ceil(Math.sqrt(resultSq)));
-        resEl.innerText = res;
-        diagRes.textContent = res;
+        
+        if (isNaN(h) || isNaN(a)) { 
+            resEl.innerText = "---"; 
+            diagRes.textContent = "---"; 
+            return; 
+        }
+
+        const resultValueNum = Math.ceil(Math.sqrt(Math.pow(h - (b + x), 2) + Math.pow(a, 2)));
+        const resFormatted = formatNum(resultValueNum);
+        
+        resEl.innerText = resFormatted;
+        diagRes.textContent = resFormatted;
+
+        inputs['elbow-input-90'] = resultValueNum.toString();
+        inputs['elbow-input-45'] = resultValueNum.toString();
+        
+        if (currentTab === 'dist') {
+            elbowCalc(); 
+        }
     }
 
     function saveHistory() {
@@ -601,10 +644,13 @@
         }
         localStorage.setItem(storageKey, JSON.stringify(histories));
         renderHistory();
-        inputs[`elbow-input-${currentTab}`] = '';
-        updateDisplay('elbow-input', '');
-        elbowCalc();
+        
+        // 【修正】入力欄の数値をクリアせずにそのまま残す
+        // inputs[`elbow-input-${currentTab}`] = ''; 
+        // updateDisplay('elbow-input', '');
+        
         showToast("保存しました");
+        // 次のキー入力で上書きされるようモード設定
         isOverwriteMode = true;
     }
 
@@ -633,7 +679,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </button>
                 <div class="flex-1">
-                    <div class="text-[15px] font-bold text-[var(--ios-silver)] mb-0.5">${h.size}サイズ / 入力:${h.input}</div>
+                    <div class="text-[15px] font-bold text-[var(--ios-silver)] mb-0.5">${h.size}サイズ / 芯-芯:${h.input}</div>
                     <div class="text-xl font-bold">${h.result}</div>
                 </div>
                 ${!h.locked ? `
