@@ -288,6 +288,7 @@
                 <div id="historyList" class="flex flex-col"></div>
             </div>
 
+            <!-- 勾配画面 -->
             <div id="slopeView" class="tab-view flex-1 overflow-y-auto bg-black p-4 space-y-4" style="display:none;">
                 <div class="flex flex-col gap-3 animate-fade-in text-left">
                     <div class="bg-zinc-900 rounded-2xl overflow-visible border-2 border-zinc-500 shadow-xl text-left">
@@ -444,7 +445,6 @@
             return Math.abs(area / 2);
         }
 
-        // 座標計算。手動入力した辺に合わせて縮尺(ppx)を調整
         function rebuildGeometry() {
             if (points.length < 3 || !isClosed) return;
             const startAnchor = { x: points[0].x, y: points[0].y };
@@ -479,9 +479,15 @@
             if (points.length === 0) return;
             let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
             points.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
-            const pad = 60;
+            
+            // iPhone 12 miniなどの小型端末向けにマージンを最適化 (ラベル領域を確保しつつ最大化)
+            const pad = 45; 
             const w = maxX - minX || 100, h = maxY - minY || 100;
-            zoom = Math.min((canvas.width - pad*2) / w, (canvas.height - pad*2) / h);
+            
+            // 縦横比を保ちつつ、キャンバスサイズからマージンを引いた領域にフィットさせる
+            zoom = Math.min((canvas.width - pad * 2) / w, (canvas.height - pad * 2) / h);
+            
+            // 中央揃えの計算
             cameraX = canvas.width / 2 - ((minX + maxX) / 2) * zoom;
             cameraY = canvas.height / 2 - ((minY + maxY) / 2) * zoom;
             draw();
@@ -548,7 +554,6 @@
                 else { if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; else delete fixedAngles[selectedIdx]; } 
                 inputModal.classList.remove('active'); 
                 nativeInput.blur();
-                // ※ 重要: 描画更新のみ実行し、座標再計算(rebuildGeometry)は行わない
                 draw(); 
             };
             document.getElementById('cancelModal').onclick = (e) => { e.stopPropagation(); inputModal.classList.remove('active'); nativeInput.blur(); draw(); };
@@ -561,6 +566,8 @@
             document.getElementById('setQuick90').onclick = () => { nativeInput.value = "90"; document.getElementById('saveBtn').click(); };
             document.getElementById('setQuick270').onclick = () => { nativeInput.value = "270"; document.getElementById('saveBtn').click(); };
             document.getElementById('setQuick45').onclick = () => { nativeInput.value = "45"; document.getElementById('saveBtn').click(); };
+            
+            // 「作図 更新」ボタン：計算後に自動的に最大化（fitView）を行う
             document.getElementById('executeBtn').onclick = () => {
                 if (!isClosed) { showToast("図形を閉じてから実行してください"); return; }
                 saveState();
@@ -575,8 +582,11 @@
                     }
                 }
                 applyGeometryUpdate();
+                // 追加：計算後に画面いっぱいに表示を整える
+                fitView(); 
                 showToast("図面を整列しました");
             };
+            
             let isTouching = false;
             canvas.addEventListener('mousedown', (e) => { if (isTouching) return; handleStart(e); });
             window.addEventListener('mousemove', (e) => { if (isTouching) return; handleMove(e); });
