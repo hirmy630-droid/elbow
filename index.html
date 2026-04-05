@@ -201,7 +201,7 @@
             background: transparent;
             border: none;
             color: white;
-            font-size: 40px;
+            font-size: 42px;
             font-weight: 900;
             width: 100%;
             text-align: center;
@@ -216,7 +216,7 @@
     <div id="toast" class="fixed top-28 left-1/2 -translate-x-1/2 bg-white/95 text-black px-6 py-4 rounded-full text-base font-bold opacity-0 pointer-events-none transition-opacity duration-300 z-[60] shadow-xl whitespace-nowrap"></div>
 
     <div class="app-container">
-        <!-- アプリ最上部のタイトル行 -->
+        <!-- タイトル -->
         <div class="app-top-header">
             <span class="text-[20px] font-black tracking-tight">面積計算</span>
             <span class="text-[14px] font-black opacity-40 tracking-wider">KYOWA ROOF</span>
@@ -259,7 +259,7 @@
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <input type="text" id="slopeInput" inputmode="decimal" pattern="[0-9]*" placeholder="勾配(mm)" class="w-full h-9 rounded-lg text-base px-3 font-bold text-black bg-white border-none focus:ring-1 focus:ring-black">
+                        <input type="text" id="slopeInput" inputmode="decimal" pattern="[0-9.]*" placeholder="勾配(mm)" class="w-full h-9 rounded-lg text-base px-3 font-bold text-black bg-white border-none focus:ring-1 focus:ring-black">
                     </div>
                     <div class="flex items-center justify-center min-w-[65px] bg-white h-9 rounded-lg border border-black/5 shadow-sm px-1">
                         <span id="slopeResult" class="text-sm font-black text-black tabular-nums">0.0°</span>
@@ -289,7 +289,6 @@
             </div>
 
             <div id="slopeView" class="tab-view flex-1 overflow-y-auto bg-black p-4 space-y-4" style="display:none;">
-                <!-- 勾配画面の内容（変更なし） -->
                 <div class="flex flex-col gap-3 animate-fade-in text-left">
                     <div class="bg-zinc-900 rounded-2xl overflow-visible border-2 border-zinc-500 shadow-xl text-left">
                         <div class="flex border-b border-zinc-700 relative">
@@ -367,32 +366,18 @@
         <div class="bg-[#1C1C1E] rounded-[2rem] w-full max-w-sm shadow-2xl border border-white/10 overflow-hidden">
             <div class="p-6 flex flex-col gap-4">
                 <h2 id="modalTitle" class="text-xl font-black text-center text-white">設定</h2>
-                
                 <div class="border-2 border-[#5E5CE6] rounded-2xl py-2 flex items-center justify-center relative bg-[#000]">
-                    <!-- iPhoneのテンキーを出しやすくするための属性を追加 -->
-                    <input type="text" id="nativeInput" 
-                        inputmode="decimal" 
-                        pattern="[0-9]*"
-                        enterkeyhint="done"
-                        placeholder="0.00" 
-                        class="focus:placeholder-transparent" 
-                        onclick="this.select()">
+                    <input type="text" id="nativeInput" inputmode="decimal" pattern="[0-9.]*" enterkeyhint="done" placeholder="0.00" class="focus:placeholder-transparent" onclick="this.select()">
                     <span class="absolute right-5 text-white/30 font-black text-xl pointer-events-none" id="modalUnit">m</span>
                 </div>
-
                 <div id="quickAngle" class="hidden grid grid-cols-3 gap-2">
                     <button type="button" id="setQuick90" class="py-2.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">90°</button>
                     <button type="button" id="setQuick270" class="py-2.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">270°</button>
                     <button type="button" id="setQuick45" class="py-2.5 bg-[#2C2C2E] text-white rounded-xl font-black text-base btn-tap">45°</button>
                 </div>
-
                 <div class="flex gap-2.5">
-                    <button type="button" id="cancelModal" class="flex-1 h-[3.8rem] bg-[#48484A] text-white rounded-2xl font-bold text-base btn-tap">
-                        キャンセル
-                    </button>
-                    <button type="button" id="saveBtn" class="flex-[1.5] h-[3.8rem] bg-[#5E5CE6] text-white rounded-2xl font-black text-lg btn-tap shadow-lg">
-                        適用
-                    </button>
+                    <button type="button" id="cancelModal" class="flex-1 h-[3.8rem] bg-[#48484A] text-white rounded-2xl font-bold text-base btn-tap">キャンセル</button>
+                    <button type="button" id="saveBtn" class="flex-[1.5] h-[3.8rem] bg-[#5E5CE6] text-white rounded-2xl font-black text-lg btn-tap shadow-lg">適用</button>
                 </div>
             </div>
         </div>
@@ -459,6 +444,7 @@
             return Math.abs(area / 2);
         }
 
+        // 座標計算。手動入力した辺に合わせて縮尺(ppx)を調整
         function rebuildGeometry() {
             if (points.length < 3 || !isClosed) return;
             const startAnchor = { x: points[0].x, y: points[0].y };
@@ -474,6 +460,19 @@
             const rot = globalBaseAngle - Math.atan2(logical[1].y - logical[0].y, logical[1].x - logical[0].x);
             for (let i = 0; i < logical.length; i++) { const p = logical[i]; points[i] = { x: (p.x * Math.cos(rot) - p.y * Math.sin(rot)) * ppx + startAnchor.x, y: (p.x * Math.sin(rot) + p.y * Math.cos(rot)) * ppx + startAnchor.y }; }
             areaEl.innerText = calculateTheoreticalArea().toFixed(2);
+        }
+
+        function applyGeometryUpdate() {
+            if (!isClosed) return;
+            const N = points.length;
+            let firstManualIdx = -1;
+            for(let i = 0; i < N; i++) { if(manualLengths[i] !== undefined) { firstManualIdx = i; break; } }
+            if(firstManualIdx !== -1) {
+                const d_screen = Math.hypot(points[(firstManualIdx+1)%N].x - points[firstManualIdx].x, points[(firstManualIdx+1)%N].y - points[firstManualIdx].y);
+                ppx = d_screen / manualLengths[firstManualIdx];
+            }
+            rebuildGeometry();
+            draw();
         }
 
         function fitView() {
@@ -524,7 +523,9 @@
             points.forEach((p_world, i) => { const p = w2s(p_world); ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fillStyle = (i === 0) ? '#FFFFFF' : '#1C1C1E'; ctx.fill(); ctx.strokeStyle = '#5E5CE6'; ctx.lineWidth = 3; ctx.stroke(); });
             for (let i = 0; i < limit; i++) {
                 const p1 = w2s(points[i]), p2 = w2s(points[(i + 1) % points.length]), isAuto = isClosed && i === points.length - 1, midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
-                const d = Math.hypot(points[(i+1)%points.length].x - points[i].x, points[(i+1)%points.length].y - points[i].y), val = manualLengths[i] !== undefined ? manualLengths[i] : (d / ppx), label = `${val.toFixed(2)}m`;
+                const d = Math.hypot(points[(i+1)%points.length].x - points[i].x, points[(i+1)%points.length].y - points[i].y);
+                const val = manualLengths[i] !== undefined ? manualLengths[i] : (d / ppx);
+                const label = `${val.toFixed(2)}m`;
                 ctx.font = 'bold 14px ui-monospace, monospace'; const tw = ctx.measureText(label).width;
                 ctx.fillStyle = isAuto ? '#3b82f6' : (manualLengths[i] !== undefined ? '#FFFFFF' : 'rgba(142,142,147,0.9)');
                 ctx.beginPath(); ctx.roundRect(midX - tw/2 - 9, midY - 13, tw + 18, 26, 6); ctx.fill();
@@ -535,33 +536,24 @@
 
         window.onload = function() {
             canvas = document.getElementById('canvas'); ctx = canvas.getContext('2d'); areaEl = document.getElementById('areaDisplay'); inputModal = document.getElementById('inputModal'); deleteModal = document.getElementById('deleteModal'); fitBtn = document.getElementById('fitBtn'); slopeInput = document.getElementById('slopeInput'); slopeResult = document.getElementById('slopeResult'); exportBtn = document.getElementById('exportBtn'); gridBg = document.getElementById('gridBg'); pressProgress = document.getElementById('pressProgress'); nativeInput = document.getElementById('nativeInput');
-            
             setActiveSlopeField('y');
             updateSlopeDisplay();
-
             slopeInput.oninput = () => { const val = parseFloat(slopeInput.value); if (!isNaN(val)) { const deg = Math.atan(val / 100) * 180 / Math.PI; slopeResult.innerText = deg.toFixed(1) + '°'; } else { slopeResult.innerText = '0.0°'; } };
             nativeInput.onkeydown = (e) => { if (e.key === 'Enter') { document.getElementById('saveBtn').click(); nativeInput.blur(); } };
-
             document.getElementById('saveBtn').onclick = (e) => { 
                 e.stopPropagation(); 
                 saveState(); 
                 const val = parseFloat(nativeInput.value); 
-                if (activeMode === 'edge') { 
-                    if (!isNaN(val) && val > 0) manualLengths[selectedIdx] = val; 
-                    else delete manualLengths[selectedIdx]; 
-                } else { 
-                    if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; 
-                    else delete fixedAngles[selectedIdx]; 
-                } 
+                if (activeMode === 'edge') { if (!isNaN(val) && val > 0) manualLengths[selectedIdx] = val; else delete manualLengths[selectedIdx]; } 
+                else { if (!isNaN(val) && val >= 0) fixedAngles[selectedIdx] = val; else delete fixedAngles[selectedIdx]; } 
                 inputModal.classList.remove('active'); 
                 nativeInput.blur();
+                // ※ 重要: 描画更新のみ実行し、座標再計算(rebuildGeometry)は行わない
                 draw(); 
             };
-
             document.getElementById('cancelModal').onclick = (e) => { e.stopPropagation(); inputModal.classList.remove('active'); nativeInput.blur(); draw(); };
             document.getElementById('cancelDelete').onclick = (e) => { e.stopPropagation(); deleteModal.classList.remove('active'); };
             document.getElementById('confirmDelete').onclick = (e) => { e.stopPropagation(); executeDelete(); };
-
             exportBtn.onclick = () => { if (points.length < 3 || !isClosed) { showToast("図形を閉じてから保存してください"); return; } const dataUrl = canvas.toDataURL("image/png"); savedData.push({ img: dataUrl, area: areaEl.innerText, time: new Date().toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), memo: '', points: JSON.parse(JSON.stringify(points)), manualLengths: {...manualLengths}, fixedAngles: {...fixedAngles}, isClosed, ppx, globalBaseAngle, globalIsCW, slopeValue: slopeInput.value, cameraX, cameraY, zoom }); persistData(); showToast("保存しました"); };
             document.getElementById('undoBtn').onclick = undo;
             document.getElementById('fitBtn').onclick = fitView;
@@ -569,13 +561,10 @@
             document.getElementById('setQuick90').onclick = () => { nativeInput.value = "90"; document.getElementById('saveBtn').click(); };
             document.getElementById('setQuick270').onclick = () => { nativeInput.value = "270"; document.getElementById('saveBtn').click(); };
             document.getElementById('setQuick45').onclick = () => { nativeInput.value = "45"; document.getElementById('saveBtn').click(); };
-            
             document.getElementById('executeBtn').onclick = () => {
                 if (!isClosed) { showToast("図形を閉じてから実行してください"); return; }
-                saveState(); const N = points.length;
-                let firstManualIdx = -1;
-                for(let i = 0; i < N; i++) { if(manualLengths[i] !== undefined) { firstManualIdx = i; break; } }
-                if(firstManualIdx !== -1) { const d_screen = Math.hypot(points[(firstManualIdx+1)%N].x - points[firstManualIdx].x, points[(firstManualIdx+1)%N].y - points[firstManualIdx].y); ppx = d_screen / manualLengths[firstManualIdx]; }
+                saveState();
+                const N = points.length;
                 for (let i = 1; i < N - 1; i++) {
                     if (fixedAngles[i] === undefined) {
                         const prev = points[(i-1+N)%N], curr = points[i], next = points[(i+1)%N];
@@ -585,14 +574,13 @@
                         if (Math.abs(actualDeg - 90) <= 15) fixedAngles[i] = 90; else if (Math.abs(actualDeg - 270) <= 15) fixedAngles[i] = 270; else fixedAngles[i] = Math.round(actualDeg * 10) / 10;
                     }
                 }
-                rebuildGeometry(); draw(); showToast("面積を確定しました");
+                applyGeometryUpdate();
+                showToast("図面を整列しました");
             };
-
             let isTouching = false;
             canvas.addEventListener('mousedown', (e) => { if (isTouching) return; handleStart(e); });
             window.addEventListener('mousemove', (e) => { if (isTouching) return; handleMove(e); });
             window.addEventListener('mouseup', (e) => { if (isTouching) return; handleEnd(); });
-
             canvas.addEventListener('touchstart', (e) => { 
                 isTouching = true; 
                 if (e.touches.length === 2) { 
@@ -614,7 +602,6 @@
             window.addEventListener('touchend', (e) => { handleEnd(); isTouching = false; });
             window.addEventListener('resize', resize); resize(); setTimeout(resize, 200);
         };
-
         function switchTab(tab) { 
             document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none'); 
             document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active')); 
@@ -622,110 +609,56 @@
             else if (tab === 'history') { document.getElementById('historyView').style.display = 'block'; document.getElementById('tabHistory').classList.add('active'); renderHistory(); } 
             else if (tab === 'slope') { document.getElementById('slopeView').style.display = 'block'; document.getElementById('tabSlope').classList.add('active'); }
         }
-
         function setActiveSlopeField(field) {
             activeSlopeField = field;
-            ['y', 'x', 'c'].forEach(f => {
-                const el = document.getElementById('slope_field_' + f);
-                if (el) el.classList.remove('bg-zinc-800', 'ring-2', 'ring-inset', 'ring-orange-500', 'z-10');
-            });
+            ['y', 'x', 'c'].forEach(f => { const el = document.getElementById('slope_field_' + f); if (el) el.classList.remove('bg-zinc-800', 'ring-2', 'ring-inset', 'ring-orange-500', 'z-10'); });
             ['a', 'b'].forEach(f => {
                 const el = document.getElementById('slope_field_' + f);
                 if (el) { el.classList.remove('border-orange-500', 'ring-2', 'ring-inset', 'ring-orange-500', 'z-10'); el.classList.add(f === 'a' ? 'border-green-500' : 'border-blue-500'); }
-                const input = document.getElementById('slope_val_' + f);
-                if (input) { input.classList.remove('text-white'); input.classList.add(f === 'a' ? 'text-green-500' : 'text-blue-500'); }
+                const input = document.getElementById('slope_val_' + f); if (input) { input.classList.remove('text-white'); input.classList.add(f === 'a' ? 'text-green-500' : 'text-blue-500'); }
             });
-            if (['y', 'x', 'c'].includes(field)) {
-                const el = document.getElementById('slope_field_' + field);
-                if (el) el.classList.add('bg-zinc-800', 'ring-2', 'ring-inset', 'ring-orange-500', 'z-10');
-            } else if (['a', 'b'].includes(field)) {
+            if (['y', 'x', 'c'].includes(field)) { const el = document.getElementById('slope_field_' + field); if (el) el.classList.add('bg-zinc-800', 'ring-2', 'ring-inset', 'ring-orange-500', 'z-10'); } 
+            else if (['a', 'b'].includes(field)) {
                 const el = document.getElementById('slope_field_' + field);
                 if (el) { el.classList.remove(field === 'a' ? 'border-green-500' : 'border-blue-500'); el.classList.add('border-orange-500', 'ring-2', 'ring-inset', 'ring-orange-500', 'z-10'); }
-                const input = document.getElementById('slope_val_' + field);
-                if (input) { input.classList.remove(field === 'a' ? 'text-green-500' : 'text-blue-500'); input.classList.add('text-white'); }
+                const input = document.getElementById('slope_val_' + field); if (input) { input.classList.remove(field === 'a' ? 'text-green-500' : 'text-blue-500'); input.classList.add('text-white'); }
             }
             slopeIsNewEntry = true;
         }
-
-        function formatVal(val) {
-            if (val === '' || val === undefined) return '';
-            let n = parseFloat(val.toString().replace(/,/g, ''));
-            return isNaN(n) ? val : Math.round(n).toLocaleString();
-        }
-
+        function formatVal(val) { if (val === '' || val === undefined) return ''; let n = parseFloat(val.toString().replace(/,/g, '')); return isNaN(n) ? val : Math.round(n).toLocaleString(); }
         function updateSlopeDisplay() {
-            document.getElementById('slope_val_y').value = slope_y;
-            document.getElementById('slope_val_x').value = slope_x;
-            document.getElementById('slope_val_c').value = formatVal(slope_c);
-            document.getElementById('slope_val_a').value = formatVal(slope_a);
-            document.getElementById('slope_val_b').value = formatVal(slope_b);
-            const y_num = parseFloat(slope_y) || 0;
-            document.getElementById('svg_val_c').textContent = slope_c ? formatVal(slope_c) : '-';
+            document.getElementById('slope_val_y').value = slope_y; document.getElementById('slope_val_x').value = slope_x;
+            document.getElementById('slope_val_c').value = formatVal(slope_c); document.getElementById('slope_val_a').value = formatVal(slope_a); document.getElementById('slope_val_b').value = formatVal(slope_b);
+            const y_num = parseFloat(slope_y) || 0; document.getElementById('svg_val_c').textContent = slope_c ? formatVal(slope_c) : '-';
             const group = document.getElementById('svg_calc_group');
             const isValid = (slope_y !== '' || slope_x !== '') && (slope_c !== '' || slope_a !== '' || slope_b !== '');
             if (isValid) {
-                group.style.display = 'block';
-                const h = Math.max(10, Math.min(100, y_num));
-                document.getElementById('svg_path_a').setAttribute('d', `M 260 160 L 260 ${160 - h}`);
-                document.getElementById('svg_val_a').textContent = slope_a !== '' ? formatVal(slope_a) : '-';
-                document.getElementById('svg_val_a').setAttribute('y', 160 - h/2);
-                document.getElementById('svg_path_b').setAttribute('d', `M 40 160 L 260 ${160 - h}`);
-                document.getElementById('svg_val_b').textContent = slope_b !== '' ? formatVal(slope_b) : '-';
-                document.getElementById('svg_val_b').setAttribute('y', 160 - h/2 - 15);
+                group.style.display = 'block'; const h = Math.max(10, Math.min(100, y_num));
+                document.getElementById('svg_path_a').setAttribute('d', `M 260 160 L 260 ${160 - h}`); document.getElementById('svg_val_a').textContent = slope_a !== '' ? formatVal(slope_a) : '-'; document.getElementById('svg_val_a').setAttribute('y', 160 - h/2);
+                document.getElementById('svg_path_b').setAttribute('d', `M 40 160 L 260 ${160 - h}`); document.getElementById('svg_val_b').textContent = slope_b !== '' ? formatVal(slope_b) : '-'; document.getElementById('svg_val_b').setAttribute('y', 160 - h/2 - 15);
             } else { group.style.display = 'none'; }
         }
-
         function handleSlopeKey(key) {
             if (key === 'AC') { slope_y = ''; slope_x = ''; slope_c = ''; slope_a = ''; slope_b = ''; slopeIsNewEntry = true; updateSlopeDisplay(); return; }
-            if (key === 'C') { 
-                if (activeSlopeField === 'y') slope_y = ''; else if (activeSlopeField === 'x') slope_x = ''; else if (activeSlopeField === 'c') slope_c = ''; else if (activeSlopeField === 'a') slope_a = ''; else if (activeSlopeField === 'b') slope_b = '';
-                slopeIsNewEntry = true; updateSlopeDisplay(); return;
-            }
-            if (key === '⏎') {
-                const fields = ['y', 'x', 'c', 'a', 'b'];
-                const currentIdx = fields.indexOf(activeSlopeField);
-                if (currentIdx !== -1 && currentIdx < fields.length - 1) setActiveSlopeField(fields[currentIdx + 1]); else setActiveSlopeField('y');
-                return;
-            }
-            let currentStr = "";
-            if (activeSlopeField === 'y') currentStr = slope_y; else if (activeSlopeField === 'x') currentStr = slope_x; else if (activeSlopeField === 'c') currentStr = slope_c; else if (activeSlopeField === 'a') currentStr = slope_a; else if (activeSlopeField === 'b') currentStr = slope_b;
-            if (key === '00' && (slopeIsNewEntry || currentStr === '')) return;
-            if (key === '.' && !slopeIsNewEntry && currentStr.includes('.')) return;
-            let nextStr = slopeIsNewEntry ? (key === '.' ? '0.' : key.toString()) : currentStr + key;
-            slopeIsNewEntry = false;
-            processSlopeChange(activeSlopeField, nextStr);
-            updateSlopeDisplay();
+            if (key === 'C') { if (activeSlopeField === 'y') slope_y = ''; else if (activeSlopeField === 'x') slope_x = ''; else if (activeSlopeField === 'c') slope_c = ''; else if (activeSlopeField === 'a') slope_a = ''; else if (activeSlopeField === 'b') slope_b = ''; slopeIsNewEntry = true; updateSlopeDisplay(); return; }
+            if (key === '⏎') { const fields = ['y', 'x', 'c', 'a', 'b']; const currentIdx = fields.indexOf(activeSlopeField); if (currentIdx !== -1 && currentIdx < fields.length - 1) setActiveSlopeField(fields[currentIdx + 1]); else setActiveSlopeField('y'); return; }
+            let currentStr = ""; if (activeSlopeField === 'y') currentStr = slope_y; else if (activeSlopeField === 'x') currentStr = slope_x; else if (activeSlopeField === 'c') currentStr = slope_c; else if (activeSlopeField === 'a') currentStr = slope_a; else if (activeSlopeField === 'b') currentStr = slope_b;
+            if (key === '00' && (slopeIsNewEntry || currentStr === '')) return; if (key === '.' && !slopeIsNewEntry && currentStr.includes('.')) return;
+            let nextStr = slopeIsNewEntry ? (key === '.' ? '0.' : key.toString()) : currentStr + key; slopeIsNewEntry = false; processSlopeChange(activeSlopeField, nextStr); updateSlopeDisplay();
         }
-
         function processSlopeChange(field, val) {
             const cleanVal = val.toString().replace(/,/g, '');
-            if (field === 'y') {
-                slope_y = cleanVal; const n = parseFloat(cleanVal);
-                if (isNaN(n) || cleanVal === '') { slope_x = ''; } else { slope_x = (Math.round((Math.atan(n / 100) * 180) / Math.PI * 10) / 10).toFixed(1); }
-                calculateDependencies('y', n);
-            } else if (field === 'x') {
-                slope_x = cleanVal; const n = parseFloat(cleanVal);
-                if (isNaN(n) || cleanVal === '') { slope_y = ''; } else { const nY = 100 * Math.tan(n * Math.PI / 180); slope_y = Math.round(nY).toString(); calculateDependencies('y', nY); }
-            } else if (field === 'c') { slope_c = cleanVal; calculateDependencies('c', parseFloat(cleanVal)); }
-            else if (field === 'a') { slope_a = cleanVal; calculateDependencies('a', parseFloat(cleanVal)); }
-            else if (field === 'b') { slope_b = cleanVal; calculateDependencies('b', parseFloat(cleanVal)); }
+            if (field === 'y') { slope_y = cleanVal; const n = parseFloat(cleanVal); if (isNaN(n) || cleanVal === '') { slope_x = ''; } else { slope_x = (Math.round((Math.atan(n / 100) * 180) / Math.PI * 10) / 10).toFixed(1); } calculateDependencies('y', n); } 
+            else if (field === 'x') { slope_x = cleanVal; const n = parseFloat(cleanVal); if (isNaN(n) || cleanVal === '') { slope_y = ''; } else { const nY = 100 * Math.tan(n * Math.PI / 180); slope_y = Math.round(nY).toString(); calculateDependencies('y', nY); } } 
+            else if (field === 'c') { slope_c = cleanVal; calculateDependencies('c', parseFloat(cleanVal)); } else if (field === 'a') { slope_a = cleanVal; calculateDependencies('a', parseFloat(cleanVal)); } else if (field === 'b') { slope_b = cleanVal; calculateDependencies('b', parseFloat(cleanVal)); }
         }
-
         function calculateDependencies(changedField, changedValue) {
-            const curY = (changedField === 'y') ? changedValue : parseFloat(slope_y) || 0;
-            const curC = (changedField === 'c') ? changedValue : parseFloat(String(slope_c).replace(/,/g, '')) || 0;
-            const curA = (changedField === 'a') ? changedValue : parseFloat(String(slope_a).replace(/,/g, '')) || 0;
-            const curB = (changedField === 'b') ? changedValue : parseFloat(String(slope_b).replace(/,/g, '')) || 0;
+            const curY = (changedField === 'y') ? changedValue : parseFloat(slope_y) || 0; const curC = (changedField === 'c') ? changedValue : parseFloat(String(slope_c).replace(/,/g, '')) || 0; const curA = (changedField === 'a') ? changedValue : parseFloat(String(slope_a).replace(/,/g, '')) || 0; const curB = (changedField === 'b') ? changedValue : parseFloat(String(slope_b).replace(/,/g, '')) || 0;
             const hasLockedC = (changedField === 'c' || (slope_c !== '' && changedField !== 'c'));
             if (hasLockedC) {
                 if ((changedField === 'y' || changedField === 'c') && !isNaN(curY)) { const nextA = curC * (curY / 100); const nextB = Math.sqrt(curC**2 + nextA**2); slope_a = Math.round(nextA).toString(); slope_b = Math.round(nextB).toString(); }
-                else if (changedField === 'a') {
-                    if (curC !== 0 && !isNaN(curA)) { const calcY = (curA / curC) * 100; slope_y = Math.round(calcY).toString(); slope_x = (Math.round((Math.atan(calcY / 100) * 180) / Math.PI * 10) / 10).toFixed(1); slope_b = Math.round(Math.sqrt(curC**2 + curA**2)).toString(); }
-                    else { slope_b = ''; }
-                } else if (changedField === 'b') {
-                    if (!isNaN(curB) && curB >= curC) { const calcA = Math.sqrt(Math.max(0, curB**2 - curC**2)); slope_a = Math.round(calcA).toString(); const calcY = (curC === 0) ? 0 : (calcA / curC) * 100; slope_y = Math.round(calcY).toString(); slope_x = (Math.round((Math.atan(calcY / 100) * 180) / Math.PI * 10) / 10).toFixed(1); }
-                    else { slope_a = ''; slope_y = ''; slope_x = ''; }
-                }
+                else if (changedField === 'a') { if (curC !== 0 && !isNaN(curA)) { const calcY = (curA / curC) * 100; slope_y = Math.round(calcY).toString(); slope_x = (Math.round((Math.atan(calcY / 100) * 180) / Math.PI * 10) / 10).toFixed(1); slope_b = Math.round(Math.sqrt(curC**2 + curA**2)).toString(); } else { slope_b = ''; } } 
+                else if (changedField === 'b') { if (!isNaN(curB) && curB >= curC) { const calcA = Math.sqrt(Math.max(0, curB**2 - curC**2)); slope_a = Math.round(calcA).toString(); const calcY = (curC === 0) ? 0 : (calcA / curC) * 100; slope_y = Math.round(calcY).toString(); slope_x = (Math.round((Math.atan(calcY / 100) * 180) / Math.PI * 10) / 10).toFixed(1); } else { slope_a = ''; slope_y = ''; slope_x = ''; } }
             } else {
                 if (slope_y !== '' || changedField === 'y') {
                     if (changedField === 'a') { if (curY !== 0) { const calcC = curA / (curY / 100); slope_c = Math.round(calcC).toString(); slope_b = Math.round(Math.sqrt(calcC**2 + curA**2)).toString(); } }
@@ -734,7 +667,6 @@
                 else if (changedField === 'b' && slope_a !== '') { if (curB > curA) { const calcC = Math.sqrt(curB**2 - curA**2); slope_c = Math.round(calcC).toString(); const calcY = (curA / calcC) * 100; slope_y = Math.round(calcY).toString(); slope_x = (Math.round((Math.atan(calcY / 100) * 180) / Math.PI * 10) / 10).toFixed(1); } }
             }
         }
-
         function undo() { if (actionHistory.length === 0) return; const state = actionHistory.pop(); points = state.points; manualLengths = state.manualLengths; fixedAngles = state.fixedAngles; isClosed = state.isClosed; ppx = state.ppx; globalBaseAngle = state.globalBaseAngle; globalIsCW = state.globalIsCW; draw(); }
         function saveState() { const state = { points: JSON.parse(JSON.stringify(points)), manualLengths: {...manualLengths}, fixedAngles: {...fixedAngles}, isClosed, ppx, globalBaseAngle, globalIsCW }; actionHistory.push(state); if (actionHistory.length > 50) actionHistory.shift(); }
         function resize() { if (!canvas) return; const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; draw(); }
@@ -743,15 +675,11 @@
         function updateMemo(idx, val) { savedData[idx].memo = val; persistData(); showToast("メモを保存しました"); }
         function deleteHistory(idx) { deleteTargetIdx = idx; deleteModal.classList.add('active'); }
         function executeDelete() { if (deleteTargetIdx !== -1) { savedData.splice(deleteTargetIdx, 1); persistData(); renderHistory(); deleteModal.classList.remove('active'); deleteTargetIdx = -1; showToast("削除しました"); } }
-
         function handleStart(e) {
             const raw = getRawCoords(e); startRawPos = {x: raw.x, y: raw.y}; lastRawPos = raw; hasMoved = false; longPressTriggered = false; isPanning = false;
             if (e.target.id === 'canvas' && e.cancelable) e.preventDefault();
             if (!isClosed) { saveState(); const world = s2w(raw); const snapped = {x: Math.round(world.x), y: Math.round(world.y)}; if (points.length >= 3 && Math.hypot(raw.x - w2s(points[0]).x, raw.y - w2s(points[0]).y) < 50) { finalizeDrawing(); } else { points.push(snapped); draw(); } return; }
-            for (let i = 0; i < points.length; i++) { 
-                const p1 = w2s(points[i]), p2 = w2s(points[(i+1)%points.length]); const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-                if (Math.hypot(raw.x - mx, raw.y - my) < 35) { targetEdgeIdx = i; return; }
-            }
+            for (let i = 0; i < points.length; i++) { const p1 = w2s(points[i]), p2 = w2s(points[(i+1)%points.length]); const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2; if (Math.hypot(raw.x - mx, raw.y - my) < 35) { targetEdgeIdx = i; return; } }
             const vIdx = points.findIndex(p => Math.hypot(raw.x - w2s(p).x, raw.y - w2s(p).y) < 30);
             if (vIdx !== -1) {
                 targetVertexIdx = vIdx; pressProgress.style.opacity = '1'; let start = Date.now();
@@ -759,29 +687,20 @@
                 return;
             }
             for (let i = 0; i < points.length; i++) { 
-                const l2 = Math.pow(w2s(points[i]).x - w2s(points[(i+1)%points.length]).x, 2) + Math.pow(w2s(points[i]).y - w2s(points[(i+1)%points.length]).y, 2);
-                if (l2 === 0) continue;
+                const l2 = Math.pow(w2s(points[i]).x - w2s(points[(i+1)%points.length]).x, 2) + Math.pow(w2s(points[i]).y - w2s(points[(i+1)%points.length]).y, 2); if (l2 === 0) continue;
                 let t = Math.max(0, Math.min(1, ((raw.x - w2s(points[i]).x) * (w2s(points[(i+1)%points.length]).x - w2s(points[i]).x) + (raw.y - w2s(points[i]).y) * (w2s(points[(i+1)%points.length]).y - w2s(points[i]).y)) / l2));
-                const dist = Math.hypot(raw.x - (w2s(points[i]).x + t * (w2s(points[(i+1)%points.length]).x - w2s(points[i]).x)), raw.y - (w2s(points[i]).y + t * (w2s(points[(i+1)%points.length]).y - w2s(points[i]).y)));
-                if (dist < 25) { targetEdgeIdx = i; return; } 
+                const dist = Math.hypot(raw.x - (w2s(points[i]).x + t * (w2s(points[(i+1)%points.length]).x - w2s(points[i]).x)), raw.y - (w2s(points[i]).y + t * (w2s(points[(i+1)%points.length]).y - w2s(points[i]).y))); if (dist < 25) { targetEdgeIdx = i; return; } 
             }
             isPanning = true;
         }
-
         function handleMove(e) { const raw = getRawCoords(e); if (Math.hypot(raw.x - startRawPos.x, raw.y - startRawPos.y) > 10) { hasMoved = true; if (pressTimer) { clearInterval(pressTimer); pressTimer = null; pressProgress.style.opacity = '0'; } } if (isPanning) { cameraX += raw.x - lastRawPos.x; cameraY += raw.y - lastRawPos.y; lastRawPos = raw; draw(); } }
-
         function handleEnd() {
             if (pressTimer) { clearInterval(pressTimer); pressTimer = null; }
             pressProgress.style.opacity = '0'; setTimeout(() => { if (!pressTimer) pressProgress.style.width = '0'; }, 200);
-            if (isClosed && !hasMoved) {
-                if (longPressTriggered && targetVertexIdx !== null) { activeMode = 'angle'; selectedIdx = targetVertexIdx; openModal(); } 
-                else if (targetEdgeIdx !== null) { activeMode = 'edge'; selectedIdx = targetEdgeIdx; openModal(); }
-            }
+            if (isClosed && !hasMoved) { if (longPressTriggered && targetVertexIdx !== null) { activeMode = 'angle'; selectedIdx = targetVertexIdx; openModal(); } else if (targetEdgeIdx !== null) { activeMode = 'edge'; selectedIdx = targetEdgeIdx; openModal(); } }
             targetVertexIdx = null; targetEdgeIdx = null; isPanning = false; draw();
         }
-
         function finalizeDrawing() { saveState(); isClosed = true; globalBaseAngle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x); let s = 0; for(let i = 0; i < points.length; i++) s += points[i].x * points[(i+1)%points.length].y - points[(i+1)%points.length].x * points[i].y; globalIsCW = s > 0; draw(); }
-
         function openModal() {
             document.getElementById('quickAngle').classList.toggle('hidden', activeMode === 'edge'); 
             document.getElementById('modalTitle').innerText = activeMode === 'edge' ? "寸法の入力" : "角度の入力";
@@ -794,19 +713,8 @@
             let val = activeMode === 'edge' ? manualLengths[selectedIdx] : fixedAngles[selectedIdx];
             if (!val && activeMode === 'edge') val = (Math.hypot(points[(selectedIdx+1)%points.length].x-points[selectedIdx].x, points[(selectedIdx+1)%points.length].y-points[selectedIdx].y)/ppx).toFixed(2);
             else if (!val && isClosed && activeMode === 'angle') val = getA(selectedIdx);
-            
-            nativeInput.value = val || ''; 
-            inputModal.classList.add('active'); 
-            
-            // iPhoneでの確実なフォーカスとテンキー起動のための処理
-            setTimeout(() => {
-                nativeInput.focus();
-                // 一部のiOSバージョンでは再度のfocusが必要な場合があります
-                nativeInput.click();
-                if (nativeInput.setSelectionRange) {
-                    nativeInput.setSelectionRange(0, nativeInput.value.length);
-                }
-            }, 50); // 遅延を短縮してユーザー操作のコンテキストを維持
+            nativeInput.value = val || ''; inputModal.classList.add('active'); nativeInput.focus();
+            if (nativeInput.setSelectionRange) { nativeInput.setSelectionRange(0, nativeInput.value.length); }
         }
     </script>
 </body>
